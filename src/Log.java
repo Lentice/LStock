@@ -1,77 +1,78 @@
-import java.util.logging.Logger;
-import java.io.IOException;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.FileHandler;
-import java.util.logging.Formatter;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 public class Log {
-	private static final boolean USE_FILE_LOG = false;
-	private static final String LOG_NAME = "MyStockLog";
+	private static final byte ERROR = 0;
+	private static final byte WARN = 1;
+	private static final byte INFO = 2;
+	private static final byte DEBUG = 3;
+	private static final byte TRACE = 4;
+	private static final byte VERBOSE = 5;
 
-	private static final Logger log = Logger.getLogger(LOG_NAME);
-	private static final Level level = Level.ALL;
-
-	static {
-		log.setUseParentHandlers(false);
-
-		ConsoleHandler consoleHandler = new ConsoleHandler();
-		consoleHandler.setLevel(level);
-		consoleHandler.setFormatter(new MyLogHander());
-		log.addHandler(consoleHandler);
-
-		if (USE_FILE_LOG) {
-			try {
-				Handler fh = new FileHandler(LOG_NAME + ".log");
-				fh.setFormatter(new MyLogHander());
-				fh.setLevel(level);
-				log.addHandler(fh);
-			} catch (SecurityException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-
+	private static final byte level = VERBOSE;
+	protected static SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS: ");
+	
+	protected static String getTimeStamp() {
+		return sdf.format(Calendar.getInstance().getTime());
 	}
 
 	public static void err(String msg) {
-		log.severe(msg);
+		if (level >= ERROR)
+			System.out.println(getTimeStamp() + msg);
 	}
 
 	public static void warn(String msg) {
-		log.warning(msg);
+		if (level >= WARN)
+			System.out.println(getTimeStamp() + msg);
 	}
 
 	public static void info(String msg) {
-		log.info(msg);
+		if (level >= INFO)
+			System.out.println(getTimeStamp() + msg);
 	}
 
 	public static void dbg(String msg) {
-		log.config(msg);
+		if (level >= DEBUG)
+			System.out.println(getTimeStamp() + msg);
 	}
 
 	public static void trace(String msg) {
-		log.fine(msg);
+		if (level >= TRACE)
+			System.out.println(getTimeStamp() + msg);
 	}
 
 	public static void verbose(String msg) {
-		log.finer(msg);
+		if (level >= VERBOSE)
+			System.out.println(getTimeStamp() + msg);
+	}
+	
+	public static void err_(String msg) {
+		if (level >= ERROR)
+			System.out.print(msg);
 	}
 
-	public static void finest(String msg) {
-		log.finest(msg);
+	public static void warn_(String msg) {
+		if (level >= WARN)
+			System.out.print(msg);
 	}
-}
 
-class MyLogHander extends Formatter {
-	@Override
-	public String format(LogRecord record) {
-		//return new Date(record.getMillis()).toString() + " " + record.getLevel() + ":" + record.getMessage() + "\n";
-		return record.getLevel() + ":" + record.getMessage() + "\n";
+	public static void info_(String msg) {
+		if (level >= INFO)
+			System.out.print(msg);
+	}
+
+	public static void dbg_(String msg) {
+		if (level >= DEBUG)
+			System.out.print(msg);
+	}
+
+	public static void trace_(String msg) {
+		if (level >= TRACE)
+			System.out.print(msg);
+	}
+
+	public static void verbose_(String msg) {
+		if (level >= VERBOSE)
+			System.out.print(msg);
 	}
 }

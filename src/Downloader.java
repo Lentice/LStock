@@ -60,14 +60,14 @@ public class Downloader {
 		int ret = -1;
 		int length;
 		HttpURLConnection urlConnection = null;
-
+		
 		try {
 			URL url = new URL(targetURL);
 			urlConnection = (HttpURLConnection) url.openConnection();
 
 			InputStream in = urlConnection.getInputStream();
 			FileOutputStream file = new FileOutputStream(filename);
-
+			
 			byte[] buffer = new byte[1024];
 			while ((length = in.read(buffer)) > 0) {
 				file.write(buffer, 0, length);
@@ -103,9 +103,12 @@ public class Downloader {
 		final String FILE_TYPE = "csv";
 		final String DATA_TYPE = "ALLBUT0999"; // 全部(不含權證、牛熊證、可展延牛熊證)
 		final String twDate = String.format("%03d/%02d/%02d", year - 1911, month, day);
-		final String filename = String.format("每日收盤行情\\TWSE%03d%02d%02d.csv", year, month, day);
-
+		final String filename = String.format("Data\\每日收盤行情\\%04d%02d%02d.csv", year, month, day);
+		
 		Log.info("Download daily trade stocks on " + twDate);
+		
+		if (year < 2004 && month < 1 && day < 11)
+			throw new Exception("Date is earlier than 2004/2/11");
 
 		String postData = String.format("download=%s&selectType=%s&qdate=%s", URLEncoder.encode(FILE_TYPE, "UTF-8"),
 		        URLEncoder.encode(DATA_TYPE, "UTF-8"), URLEncoder.encode(twDate, "UTF-8"));
@@ -137,11 +140,11 @@ public class Downloader {
 	public static void main(String[] args) {
 		// Date date = new Date();
 		Calendar cal = Calendar.getInstance(); // 現在時間
-		// cal.set(2001, 1, 6); // 月份是 0-base的
-		// Calendar cal2 = (Calendar) cal.clone();
-		// cal2.set(2015, 9, 7); // 月份是 0-base的
+		cal.set(2004, 1, 11); // 月份是 0-base的
+		Calendar cal2 = (Calendar) cal.clone();
+		cal2.set(2015, 9, 23); // 月份是 0-base的
 		try {
-			downloadDailyTradeStocks(cal);
+			downloadDailyTradeStocks(cal,cal2);
 		} catch (Exception e) {
 			System.err.println(e.getMessage());
 			e.printStackTrace();
