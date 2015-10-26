@@ -103,11 +103,11 @@ public class Downloader {
 		final String FILE_TYPE = "csv";
 		final String DATA_TYPE = "ALLBUT0999"; // 全部(不含權證、牛熊證、可展延牛熊證)
 		final String twDate = String.format("%03d/%02d/%02d", year - 1911, month, day);
-		final String filename = String.format("Data\\每日收盤行情\\%04d%02d%02d.csv", year, month, day);
+		final String filename = String.format(Environment.DailyTradeStocksPath + "%04d%02d%02d.csv", year, month, day);
 		
 		Log.info("Download daily trade stocks on " + twDate);
 		
-		if (year < 2004 && month < 1 && day < 11)
+		if (year < 2004 && month < 2 && day < 11)
 			throw new Exception("Date is earlier than 2004/2/11");
 
 		String postData = String.format("download=%s&selectType=%s&qdate=%s", URLEncoder.encode(FILE_TYPE, "UTF-8"),
@@ -136,9 +136,14 @@ public class Downloader {
 
 		return 0;
 	}
+	
+	public static int supplementDailyTradeStocks(Calendar startDate, Calendar endDate) throws Exception {
+		Calendar startCal = MyDB.getLastTradeDate();
+		Calendar endCal = Calendar.getInstance();
+		return downloadDailyTradeStocks(startCal, endCal);
+	}
 
 	public static void main(String[] args) {
-		// Date date = new Date();
 		Calendar cal = Calendar.getInstance(); // 現在時間
 		cal.set(2004, 1, 11); // 月份是 0-base的
 		Calendar cal2 = (Calendar) cal.clone();
