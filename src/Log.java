@@ -9,7 +9,7 @@ public class Log {
 	private static final byte TRACE = 4;
 	private static final byte VERBOSE = 5;
 
-	private static final byte level = INFO;
+	private static final byte level = TRACE;
 	protected static SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS: ");
 	
 	protected static String getTimeStamp() {
@@ -31,19 +31,16 @@ public class Log {
 			System.out.println(getTimeStamp() + msg);
 	}
 
-	@SuppressWarnings("unused")
 	public static void dbg(String msg) {
 		if (level >= DEBUG)
 			System.out.println(getTimeStamp() + msg);
 	}
 
-	@SuppressWarnings("unused")
 	public static void trace(String msg) {
 		if (level >= TRACE)
 			System.out.println(getTimeStamp() + msg);
 	}
 
-	@SuppressWarnings("unused")
 	public static void verbose(String msg) {
 		if (level >= VERBOSE)
 			System.out.println(getTimeStamp() + msg);
@@ -64,19 +61,16 @@ public class Log {
 			System.out.print(msg);
 	}
 
-	@SuppressWarnings("unused")
 	public static void dbg_(String msg) {
 		if (level >= DEBUG)
 			System.out.print(msg);
 	}
 
-	@SuppressWarnings("unused")
 	public static void trace_(String msg) {
 		if (level >= TRACE)
 			System.out.print(msg);
 	}
 
-	@SuppressWarnings("unused")
 	public static void verbose_(String msg) {
 		if (level >= VERBOSE)
 			System.out.print(msg);

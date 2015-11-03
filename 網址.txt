@@ -3,18 +3,43 @@
 快速捷徑：http://mops.twse.com.tw/server-java/t164sb01?step=1&CO_ID=2379&SYEAR=2014&SSEASON=1&REPORT_ID=C
 http://mops.twse.com.tw/server-java/FileDownLoad/tifrs-fr1-m1-ci-cr-2379-2014Q1.xml
 
+簡明綜合損益表(四季)
+http://mops.twse.com.tw/mops/web/t163sb15
+簡明資產負債表(四季)
+http://mops.twse.com.tw/mops/web/t163sb16
+
+簡明綜合損益表(三年)
+http://mops.twse.com.tw/mops/web/t163sb17
+簡明資產負債表(三年)
+http://mops.twse.com.tw/mops/web/t163sb18
+
+綜合損益表
+從這裡查詢：http://mops.twse.com.tw/mops/web/t163sb04
+
+資產負債表
+從這裡查詢：http://mops.twse.com.tw/mops/web/t163sb05
+
 產業別分類
 從這裡查詢：http://www.twse.com.tw/ch/products/stock_code1.php
 快速捷徑：http://isin.twse.com.tw/isin/class_main.jsp?owncode=&stockname=&isincode=&market=1&issuetype=1&industry_code=&Page=1&chklike=Y
 
-所有公司每月營收總表
-http://mops.twse.com.tw/t21/sii/t21sc03_103_7.html
+
+所有公司每月營收總表 102年(含)之後  (合併營收)
+國內上市：http://mops.twse.com.tw/nas/t21/sii/t21sc03_104_7_0.html
+國外上市：http://mops.twse.com.tw/nas/t21/sii/t21sc03_104_7_1.html
+所有公司每月營收總表 102年之前 (一般營收)
+http://mops.twse.com.tw/nas/t21/sii/t21sc03_104_7_0.html
+
+所有公司每月營收總表 102年之前 (合併營收)
+從這裡查詢: http://mops.twse.com.tw/nas/t21/sii/t21sc03_104_7_0.html
 
 股利
 http://mops.twse.com.tw/server-java/t05st09sub?step=1&TYPEK=otc&YEAR=104&first=
 http://mops.twse.com.tw/server-java/t05st09sub?step=1&TYPEK=sii&YEAR=104&first=
 http://mops.twse.com.tw/server-java/t05st09sub?step=1&TYPEK=rotc&YEAR=104&first=
 http://mops.twse.com.tw/server-java/t05st09sub?step=1&TYPEK=pub&YEAR=104&first=
+除息日
+http://www.capital.com.tw/Bulletin/All_list.asp
 
 臺灣50指數成分股票
 http://www.twse.com.tw/ch/trading/indices/twco/tai50i_print.php?language=ch&datafile=twco_c.htm
@@ -28,3 +53,6 @@ http://www.twse.com.tw/ch/trading/fund/BFI82U/BFI82U.php
 
 大盤開盤收盤價
 http://www.twse.com.tw/ch/trading/indices/MI_5MINS_HIST/MI_5MINS_HIST.php
+
+董監事持股餘額明細資料
+http://mops.twse.com.tw/mops/web/stapap1

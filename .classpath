@@ -4,5 +4,11 @@
 	<classpathentry kind="lib" path="External/mysql-connector-java-5.1.36-bin.jar"/>
 	<classpathentry kind="lib" path="External/opencsv-3.5.jar"/>
 	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="External/jsoup-1.8.3.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/External/jsoup-1.8.3-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="External/jsoup-1.8.3-javadoc.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
