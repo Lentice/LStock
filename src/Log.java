@@ -5,11 +5,11 @@ public class Log {
 	private static final byte ERROR = 0;
 	private static final byte WARN = 1;
 	private static final byte INFO = 2;
-	private static final byte DEBUG = 3;
-	private static final byte TRACE = 4;
+	private static final byte TRACE = 3;
+	private static final byte DEBUG = 4;
 	private static final byte VERBOSE = 5;
 
-	private static final byte level = TRACE;
+	private static final byte level = DEBUG;
 	protected static SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS: ");
 	
 	protected static String getTimeStamp() {
