@@ -7,18 +7,20 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-class DividendInfo {
-	String code;
-	String cashDiv; // 現金股利
-	String RetainedEarningsDiv; // 盈餘配股
-	String CapitalReserveDiv; // 公積配股
-	Date exRightDate; // 除權日
-	Date exDivDate; // 除息日
-	String refPrice; // 除權除息參考價
-}
+
 
 // 股利
 class Dividend {
+	class DividendInfo {
+		String code;
+		String cashDiv; // 現金股利
+		String RetainedEarningsDiv; // 盈餘配股
+		String CapitalReserveDiv; // 公積配股
+		Date exRightDate; // 除權日
+		Date exDivDate; // 除息日
+		String refPrice; // 除權除息參考價
+	}
+	
 	static final String folderPath = Environment.ANNUAL_DIVIDEND;
 	private static final int MaxColume = 11;
 
@@ -26,6 +28,8 @@ class Dividend {
 	boolean noData = true;
 	File file;
 	DividendInfo[] divInfo;
+	
+	
 
 	Dividend(int year) throws Exception {
 		if (year < 2001)
@@ -41,45 +45,10 @@ class Dividend {
 		}
 	}
 
-	private String trim(String s) {
-		if (s.isEmpty())
-			return s;
-
-		int begin = s.length();
-		int end = -1;
-		// Log.trace("\"" + s +"\"");
-		for (int i = 0; i < s.length(); i++) {
-			if (!Character.isSpaceChar(s.charAt(i))) {
-				begin = i;
-				break;
-			}
-		}
-		s = s.substring(begin, s.length());
-		if (s.isEmpty())
-			return s;
-
-		for (int i = s.length() - 1; i >= 0; i--) {
-			if (!Character.isSpaceChar(s.charAt(i))) {
-				end = i;
-				break;
-			}
-		}
-
-		return s.substring(0, end + 1);
-	}
-
-	private String getText(Element el) {
-		String text = trim(el.text().trim().replaceAll(",", ""));
-		if (text.isEmpty())
-			return null;
-		
-		return text;
-	}
-
-	public boolean parse() throws Exception {
+	boolean parse() throws Exception {
 		String temp;
 		if (!file.exists()) {
-			Log.warn("檔案不存在: " + file.getName());
+			Log.warn("檔案不存在: " + file.getPath());
 			return false;
 		}
 
@@ -105,14 +74,14 @@ class Dividend {
 
 			DividendInfo info = new DividendInfo();
 			info.code = eField0.first().text().split(" ")[0].trim();
-			info.cashDiv = getText(td.get(2));
-			temp = getText(td.get(3));
+			info.cashDiv = HtmlParser.getText(td.get(2));
+			temp = HtmlParser.getText(td.get(3));
 			info.exDivDate = (temp == null) ? null : Date.valueOf(temp);
-			info.RetainedEarningsDiv = getText(td.get(5));
-			info.CapitalReserveDiv = getText(td.get(6));
-			temp = getText(td.get(7));
+			info.RetainedEarningsDiv = HtmlParser.getText(td.get(5));
+			info.CapitalReserveDiv = HtmlParser.getText(td.get(6));
+			temp = HtmlParser.getText(td.get(7));
 			info.exRightDate = (temp == null) ? null : Date.valueOf(temp);
-			info.refPrice = getText(td.get(10));
+			info.refPrice = HtmlParser.getText(td.get(10));
 
 			divInfo[i] = info;
 		}
@@ -121,7 +90,7 @@ class Dividend {
 		return true;
 	}
 
-	public static int download(int year) throws Exception {
+	int download(int year) throws Exception {
 		if (year < 2001)
 			throw new Exception("Year is earlier than 2001");
 
@@ -140,20 +109,10 @@ class Dividend {
 
 		return 0;
 	}
-
-	public static void supplement(int year) throws Exception {
-		Calendar endCal = Calendar.getInstance();
-		int eYear = endCal.get(Calendar.YEAR);
-
-		Downloader.createFolder(folderPath);
-
-		for (; year <= eYear; year++) {
-			if (download(year) != 0)
-				break;
-		}
-	}
 	
 	private void importToDB(MyStatement stm) throws Exception {
+		Log.info("Import Dividend " + year);
+		
 		if (!parse())
 			return;
 		
@@ -189,8 +148,6 @@ class Dividend {
 				"除權除息參考價");
 
 		for (; year <= currentYear; year++) {
-			
-			Log.info("Import Dividend " + year);
 
 			Dividend div = new Dividend(year);
 			div.importToDB(stm);
@@ -201,23 +158,32 @@ class Dividend {
 
 public class ImportAnnual {
 	public static MyDB db;
+	
+	public static boolean isValidYear(int year, String lastUpdate) throws Exception {
+		int lastDate = Integer.parseInt(lastUpdate);
+		int lastYear = lastDate / 10000;
+		int lastMonth = lastDate / 100 % 100;
 
-	private static int getCurrentYear() {
-		Calendar cal = Calendar.getInstance();
-		return cal.get(Calendar.YEAR);
+		if (year < lastYear - 1)
+			return true;
+		else if (year == lastYear - 1 && (lastMonth > 3))
+			return true;
+
+		return false;
 	}
 
-	private static void importBasicData(MyStatement stm, int year, String code) throws Exception {
-		IncomeStatementParser income = new IncomeStatementParser(year, 4, code);
-		BalanceSheetParser balance = new BalanceSheetParser(year, 4, code);
-		CachflowParser cashflow = new CachflowParser(year, 4, code);
+	private static void importBasicData(MyStatement stm, int year, CompanyInfo company) throws Exception {
+		QuarterlyBasicTable income = new QuarterlyBasicTable(year, 4, company, QuarterlyBasicTable.INCOME_STATEMENT);
+		QuarterlyBasicTable balance = new QuarterlyBasicTable(year, 4, company, QuarterlyBasicTable.BALANCE_SHEET);
+		QuarterlyBasicTable cashflow = new QuarterlyBasicTable(year, 4, company, QuarterlyBasicTable.CASHFLOW_STATEMENT);
 
-		if (income.noData && balance.noData && cashflow.noData)
-			return;
+		income.parse(); 
+		balance.parse();
+		cashflow.parse();
 
 		int idx = 1;
 		stm.setInt(idx++, year); // Year
-		stm.setInt(idx++, code); // StockNum
+		stm.setInt(idx++, company.code); // StockNum
 		stm.setBigInt(idx++, income.getData("營業收入合計")); // 營收
 		stm.setBigInt(idx++, income.getData("營業成本合計")); // 成本
 		stm.setBigInt(idx++, income.getData("營業毛利（毛損）")); // 毛利
@@ -247,7 +213,8 @@ public class ImportAnnual {
 	}
 
 	public static void supplementBasicData(int year) throws Exception {
-		int currentYear = getCurrentYear();
+		Calendar cal = Calendar.getInstance();
+		int currentYear = cal.get(Calendar.YEAR);
 
 		CompanyInfo[] company = db.getCompanyInfo();
 
@@ -269,7 +236,7 @@ public class ImportAnnual {
 					continue;
 				}
 
-				if (!QuarterlyParserBase.isValidYear(year, lastUpdate))
+				if (!isValidYear(year, lastUpdate))
 					continue;
 
 				if (category.compareTo("金融保險業") == 0 || stockNum == 2905 || stockNum == 2514 || stockNum == 1409
@@ -282,21 +249,18 @@ public class ImportAnnual {
 				// 第四季數據是全年合併 無法直接取得
 				if (isUseIFRSs) {
 					Log.info("Import BasicData " + code + " " + year);
-					importBasicData(annualST, year, code);
+					importBasicData(annualST, year, company[i]);
 				}
 			}
 		}
 		annualST.close();
 	}
 
-	
-
-
 	public static void main(String[] args) {
 
 		try {
 			db = new MyDB();
-			// Dividend.supplement(2001);
+
 			supplementBasicData(2013);
 			Dividend.supplementDB(db, 2002);
 			Log.info("Done");
