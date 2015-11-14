@@ -650,7 +650,7 @@ public class ImportQuarterly {
 		try {
 			db = new MyDB();
 			supplementBasicData(2013, 1);
-			QuarterlySplitCashflow.run(db);
+			QuarterlyFixAndSupplement.run(db);
 			Log.info("Done");
 			db.close();
 		} catch (Exception e) {
