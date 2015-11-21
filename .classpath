@@ -4,6 +4,8 @@
 	<classpathentry kind="lib" path="External/mysql-connector-java-5.1.36-bin.jar"/>
 	<classpathentry kind="lib" path="External/opencsv-3.5.jar"/>
 	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="Strategy"/>
+	<classpathentry excluding="Data/|Data/季_現金流量表/|Data/季_綜合損益表/|Data/季_資產負債表/|Data/年_除權息/|Data/日_加權指數月表/|Data/月_營收總表/|Data/每日收盤行情/|External/|src/|Strategy/" kind="src" path=""/>
 	<classpathentry kind="lib" path="External/jsoup-1.8.3.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/External/jsoup-1.8.3-javadoc.jar!/"/>

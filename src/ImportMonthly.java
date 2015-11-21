@@ -1,5 +1,8 @@
 import java.io.File;
 import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -7,6 +10,75 @@ import java.util.List;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
+
+
+class MonthlyData {
+	private static final String ALL_DATA = "SELECT * FROM monthly WHERE StockNum=%s ORDER BY YearMonth";
+
+	Integer YearMonth;
+	Integer StockNum;
+	Long 當月營收;
+	Long 上月營收;
+	Long 去年當月營收;
+	Float 上月比較增減;
+	Float 去年同月增減;
+	Long 當月累計營收;
+	Long 去年累計營收;
+	Float 前期比較增減;
+	
+	MonthlyData() {
+	}
+
+	MonthlyData(ResultSet rs) throws SQLException {
+		int colume = 1;
+
+		/* 以下數值若不存在 則當成0 以方便計算 */
+		YearMonth = (Integer) rs.getObject(colume++, Integer.class);
+		StockNum = (Integer) rs.getObject(colume++, Integer.class);
+		當月營收 = rs.getObject(colume++, Long.class);
+		上月營收 = rs.getObject(colume++, Long.class);
+		去年當月營收 = rs.getObject(colume++, Long.class);
+		上月比較增減 = rs.getObject(colume++, Float.class);
+		去年同月增減 = rs.getObject(colume++, Float.class);
+		當月累計營收 = rs.getObject(colume++, Long.class);
+		去年累計營收 = rs.getObject(colume++, Long.class);
+		前期比較增減 = rs.getObject(colume++, Float.class);
+	}
+
+	public static MonthlyData[] getAllData(MyDB db, int stockNum) throws SQLException {
+		Statement stm = db.conn.createStatement();
+		ResultSet rs = stm.executeQuery(String.format(ALL_DATA, stockNum));
+		int numRow = getNumRow(rs);
+		if (numRow == 0)
+			return null;
+
+		MonthlyData[] allData = new MonthlyData[numRow];
+		int iRow = 0;
+		while (rs.next()) {
+			allData[iRow] = new MonthlyData(rs);
+			iRow++;
+		}
+
+		stm.close();
+		return allData;
+	}
+
+	static int getNumRow(ResultSet result) throws SQLException {
+		result.last();
+		int numRow = result.getRow();
+		result.beforeFirst();
+		return numRow;
+	}
+	
+	static MonthlyData getData(MonthlyData[] allData, int year, int month) throws SQLException {
+		for (MonthlyData data : allData) {
+			if (data.YearMonth / 100 == year && data.YearMonth % 100 == month) {
+				return data;
+			}
+		}
+		return null;
+	}
+}
 
 class MonthlyRevenue {
 	private static final String folderPath = Environment.MonthlyRevenuePath;

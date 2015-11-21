@@ -4,6 +4,8 @@ import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.net.URLEncoder;
 import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -15,6 +17,49 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+
+class DailyData {
+	//private static final String ALL_DATA = "SELECT * FROM daily WHERE StockNum=%s ORDER BY Date";
+
+	Date Date;
+	Integer StockNum;
+	Long 成交股數;
+	Long 成交筆數;
+	Long 成交金額;
+	Float 開盤價;
+	Float 最高價;
+	Float 最低價;
+	Float 收盤價;
+	Float 本益比;
+	
+	DailyData() {
+		
+	}
+	
+	public static DailyData queryData(MyDB db, Date date, int stockNum) throws Exception {
+		Statement stm = db.conn.createStatement();
+		String query = "SELECT * FROM daily WHERE Date = \'" + date +"\' AND StockNum = " + stockNum;
+		
+		ResultSet rs = stm.executeQuery(query);
+		if (!rs.first()) {
+			return null;
+		}
+		
+		DailyData data = new DailyData();
+		data.Date = date;
+		data.StockNum = stockNum;
+		data.成交股數 = rs.getLong("成交股數");
+		data.成交筆數 = rs.getLong("成交金額");
+		data.成交金額 = rs.getLong("成交金額");
+		data.開盤價 = rs.getFloat("開盤價");
+		data.最高價 = rs.getFloat("最高價");
+		data.最低價 = rs.getFloat("最低價");
+		data.收盤價 = rs.getFloat("收盤價");
+		stm.close();
+		 
+		return data;
+	}
+}
 
 /**
  * 發行量加權股價指數歷史資料 (月表)
@@ -219,20 +264,9 @@ class DailyTradeStocks {
 		return true;
 	}
 
-	public void importToDB(MyDB db) throws Exception {
+	public void importToDB(MyDB db, MyStatement companyST, MyStatement taiEx, MyStatement dailyST) throws Exception {
 		if (!parse())
 			return;
-
-		String insertComp = "INSERT INTO company (StockNum, Code, Name, last_update) " + "VALUES (?, ?, ?, ?) "
-				+ "ON DUPLICATE KEY UPDATE last_update = IF(last_update < VALUES(last_update), VALUES(last_update), last_update)";
-		MyStatement companyST = new MyStatement(db.conn, insertComp);
-
-		MyStatement taiEx = new MyStatement(db.conn);
-		taiEx.setInsertOnDuplicateStatement("daily_summary", "Date", "成交金額", "成交股數", "成交筆數");
-
-		MyStatement dailyST = new MyStatement(db.conn);
-		dailyST.setInsertIgnoreStatement("daily", "Date", "StockNum", "成交股數", "成交筆數", "成交金額", "開盤價", "最高價", "最低價",
-				"收盤價", "本益比");
 
 		int idx;
 		while (data.hasNext()) {
@@ -265,10 +299,6 @@ class DailyTradeStocks {
 		taiEx.setBigInt(idx++, taiExData[2]); // 成交股數
 		taiEx.setBigInt(idx++, taiExData[3]); // 成交筆數
 		taiEx.addBatch();
-
-		companyST.close();
-		dailyST.close();
-		taiEx.close();
 	}
 
 	protected boolean isStringFloat(String s) {
@@ -348,16 +378,31 @@ class DailyTradeStocks {
 			System.exit(-1);
 		}
 
+		String insertComp = "INSERT INTO company (StockNum, Code, Name, last_update) " + "VALUES (?, ?, ?, ?) "
+				+ "ON DUPLICATE KEY UPDATE last_update = IF(last_update < VALUES(last_update), VALUES(last_update), last_update)";
+		MyStatement companyST = new MyStatement(db.conn, insertComp);
+
+		MyStatement taiEx = new MyStatement(db.conn);
+		taiEx.setInsertOnDuplicateStatement("daily_summary", "Date", "成交金額", "成交股數", "成交筆數");
+
+		MyStatement dailyST = new MyStatement(db.conn);
+		dailyST.setInsertIgnoreStatement("daily", "Date", "StockNum", "成交股數", "成交筆數", "成交金額", "開盤價", "最高價", "最低價",
+				"收盤價", "本益比");
+
 		Calendar startCal = db.getLastDailyTradeDate();
 		Calendar endCal = Calendar.getInstance();
 		while (startCal.compareTo(endCal) <= 0) {
 
 			DailyTradeStocks trade = new DailyTradeStocks(startCal.get(Calendar.YEAR), startCal.get(Calendar.MONTH) + 1,
 					startCal.get(Calendar.DATE));
-			trade.importToDB(db);
+			trade.importToDB(db, companyST, taiEx, dailyST);
 
 			startCal.add(Calendar.DATE, 1);
 		}
+
+		companyST.close();
+		dailyST.close();
+		taiEx.close();
 	}
 }
 

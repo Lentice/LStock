@@ -4,12 +4,6 @@ import java.util.Properties;
 
 import org.jsoup.nodes.Element;
 
-class CompanyInfo {
-	public String code;
-	public String category;
-	public String lastUpdate;
-}
-
 class HtmlParser {
 	public static String getPercent(Element el) {
 		String text = getText(el);
@@ -102,56 +96,22 @@ public class MyDB {
 		conn.close();
 	}
 	
-	public CompanyInfo[] getCompanyInfo() throws SQLException {
-		Statement compST = conn.createStatement();
-		ResultSet companySet = compST.executeQuery("SELECT Code,產業別,last_update FROM company");
-		companySet.last();
-		int numRow = companySet.getRow();
-		companySet.beforeFirst();
-
-		if (numRow == 0)
-			return null;
-
-		CompanyInfo[] company = new CompanyInfo[numRow];
-		int idx = 0;
-		while (companySet.next()) {
-			CompanyInfo info = new CompanyInfo();
-			info.code = companySet.getString("Code");
-			info.category = companySet.getString("產業別");
-			Date date = companySet.getDate("last_update");
-			info.lastUpdate = date.toString().replaceAll("-", "");
-			company[idx] = info;
-			idx++;
-		}
-
-		compST.close();
-
-		return company;
-	}
-
 	public int getLastDailyTaiExDate() throws Exception {
 		Calendar cal;
-		ResultSet result;
+		ResultSet rs;
 		Statement stmt = conn.createStatement();
 
-		result = stmt.executeQuery("SELECT COUNT(Date) AS Count FROM daily_summary");
-		result.next();
-		if (result.getInt("Count") == 0) {
-			Log.trace("Last TaiEx Date: 2004_02");
-			return 200402;
-		}
-
-		result = stmt.executeQuery("SELECT MIN(Date) AS Date FROM daily_summary WHERE 開盤指數 is NULL");
-		if (!result.first() || result.getDate("Date") == null) {
-			result = stmt.executeQuery("SELECT MAX(Date) AS Date FROM daily_summary");
-			if (!result.first() || result.getDate("Date") == null) {
+		rs = stmt.executeQuery("SELECT MIN(Date) AS Date FROM daily_summary WHERE 開盤指數 is NULL");
+		if (!rs.first() || rs.getDate("Date") == null) {
+			rs = stmt.executeQuery("SELECT MAX(Date) AS Date FROM daily_summary");
+			if (!rs.first() || rs.getDate("Date") == null) {
 				Log.trace("Last TaiEx Date: 2004_02");
 				return 200402;
 			}
 		}
-		
+
 		cal = Calendar.getInstance();
-		cal.setTime(result.getDate("Date"));
+		cal.setTime(rs.getDate("Date"));
 		
 		int year =  cal.get(Calendar.YEAR);
 		int month = cal.get(Calendar.MONTH) + 1;
@@ -160,51 +120,69 @@ public class MyDB {
 	}
 
 	public Calendar getLastDailyTradeDate() throws Exception {
-		Calendar cal;
-		ResultSet result;
+		Calendar cal = Calendar.getInstance();
+		ResultSet rs;
 		Statement stmt = conn.createStatement();
 
-		result = stmt.executeQuery("SELECT COUNT(Date) FROM daily");
-		result.next();
-		if (result.getInt("COUNT(Date)") == 0) {
-			cal = Calendar.getInstance();
+		rs = stmt.executeQuery("SELECT MAX(Date) FROM daily");
+		if (!rs.first() || rs.getDate("MAX(Date)") == null) {
 			cal.set(2004, 1, 11); // 最早可以取得的資料日期
 			Log.trace(cal.getTime().toString());
 			return cal;
 		}
-		result = stmt.executeQuery("SELECT MAX(Date) FROM daily");
-		result.next();
-		cal = Calendar.getInstance();
-		cal.setTime(result.getDate("MAX(Date)"));
+		cal.setTime(rs.getDate("MAX(Date)"));
 		Log.trace("Last Trade Date: " + cal.getTime().toString());
 		return cal;
 	}
 
 	public int getLastMonthlyRevenue() throws Exception {
-		ResultSet result;
+		ResultSet rs;
 		Statement stmt = conn.createStatement();
 
-		result = stmt.executeQuery("SELECT COUNT(YearMonth) FROM monthly");
-		result.next();
-		if (result.getInt("COUNT(YearMonth)") == 0) {
+		rs = stmt.executeQuery("SELECT MAX(YearMonth) FROM monthly");
+		if (!rs.first() || rs.getInt("MAX(YearMonth)") == 0)
 			return 200401;
-		}
+		
+		int value = rs.getInt("MAX(YearMonth)");
+		Log.trace("Last Month: " + value);
 
-		result = stmt.executeQuery("SELECT MAX(YearMonth) FROM monthly");
-		result.next();
-		int month = result.getInt("MAX(YearMonth)");
-		Log.trace("Last Trade Date: " + month);
+		return value;
+	}
+	
+	public int getLastQuarterlyRevenue() throws Exception {
+		ResultSet rs;
+		Statement stmt = conn.createStatement();
 
-		return month;
+		rs = stmt.executeQuery("SELECT MAX(YearQuarter) FROM quarterly");
+		if (!rs.first() || rs.getInt("MAX(YearQuarter)") == 0)
+			return 200401;
+		int value = rs.getInt("MAX(YearQuarter)");
+		Log.trace("Last Quarter: " + value);
+
+		return value;
+	}
+	
+	public int getLastAnnualRevenue() throws Exception {
+		ResultSet rs;
+		Statement stmt = conn.createStatement();
+
+		rs = stmt.executeQuery("SELECT MAX(Year) FROM annual");
+		if (!rs.first() || rs.getInt("MAX(Year)") == 0)
+			return 2004;
+		int value = rs.getInt("MAX(Year)");
+		Log.trace("Last Year: " + value);
+
+		return value;
 	}
 }
 
 class MyStatement {
-	static final int BATCH_SIZE = 2000;
+	static final int BATCH_SIZE = 1;
 	
 	PreparedStatement stm;
 	int batchCount;
 	Connection conn;
+	int index = 1;
 	
 	MyStatement(Connection conn) throws SQLException {
 		batchCount = 0;
@@ -268,6 +246,7 @@ class MyStatement {
 	
 	public void addBatch() throws SQLException {
 		stm.addBatch();
+		index = 1;
 		
 		if (++batchCount % BATCH_SIZE == 0) {
 			stm.executeBatch();
@@ -361,4 +340,12 @@ class MyStatement {
 		else
 			stm.setInt(index, Integer.parseInt(data));
 	}
+	
+	public void setObject(int index, Object data) throws SQLException {
+			stm.setObject(index, data);
+	}
+	
+	public void setObject(Object data) throws SQLException {
+		stm.setObject(index++, data);
+}
 }
