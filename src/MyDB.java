@@ -9,7 +9,7 @@ class HtmlParser {
 		String text = getText(el);
 		if (text.isEmpty())
 			return null;
-		
+
 		text = text.replace("%", "");
 
 		float value = Float.parseFloat(text) / 100;
@@ -20,10 +20,10 @@ class HtmlParser {
 		String text = trim(el.text().trim().replaceAll(",", ""));
 		if (text.isEmpty())
 			return null;
-		
+
 		return text;
 	}
-	
+
 	public static String trim(String s) {
 		if (s.isEmpty())
 			return s;
@@ -52,9 +52,8 @@ class HtmlParser {
 	}
 }
 
-
 public class MyDB {
-	public static boolean isUseIFRSs( int year) {
+	public static boolean isUseIFRSs(int year) {
 		if (year < 2013)
 			return false;
 		else
@@ -77,7 +76,7 @@ public class MyDB {
 	}
 
 	public Connection conn;
-	
+
 	MyDB() throws SQLException, ClassNotFoundException {
 		Class.forName("com.mysql.jdbc.Driver");
 
@@ -95,7 +94,7 @@ public class MyDB {
 	public void close() throws SQLException {
 		conn.close();
 	}
-	
+
 	public int getLastDailyTaiExDate() throws Exception {
 		Calendar cal;
 		ResultSet rs;
@@ -112,8 +111,8 @@ public class MyDB {
 
 		cal = Calendar.getInstance();
 		cal.setTime(rs.getDate("Date"));
-		
-		int year =  cal.get(Calendar.YEAR);
+
+		int year = cal.get(Calendar.YEAR);
 		int month = cal.get(Calendar.MONTH) + 1;
 		Log.trace("Last TaiEx Date: " + year + "_" + month);
 		return year * 100 + month;
@@ -142,13 +141,13 @@ public class MyDB {
 		rs = stmt.executeQuery("SELECT MAX(YearMonth) FROM monthly");
 		if (!rs.first() || rs.getInt("MAX(YearMonth)") == 0)
 			return 200401;
-		
+
 		int value = rs.getInt("MAX(YearMonth)");
 		Log.trace("Last Month: " + value);
 
 		return value;
 	}
-	
+
 	public int getLastQuarterlyRevenue() throws Exception {
 		ResultSet rs;
 		Statement stmt = conn.createStatement();
@@ -161,7 +160,7 @@ public class MyDB {
 
 		return value;
 	}
-	
+
 	public int getLastAnnualRevenue() throws Exception {
 		ResultSet rs;
 		Statement stmt = conn.createStatement();
@@ -177,23 +176,23 @@ public class MyDB {
 }
 
 class MyStatement {
-	static final int BATCH_SIZE = 1;
-	
+	static final int BATCH_SIZE = 2000;
+
 	PreparedStatement stm;
 	int batchCount;
 	Connection conn;
 	int index = 1;
-	
+
 	MyStatement(Connection conn) throws SQLException {
 		batchCount = 0;
 		this.conn = conn;
 	}
-	
+
 	MyStatement(Connection conn, String stmString) throws SQLException {
 		stm = conn.prepareStatement(stmString);
 		batchCount = 0;
 	}
-	
+
 	public void setInsertIgnoreStatement(String table, String... columeNames) throws SQLException {
 		String insert = "INSERT IGNORE INTO " + table + " ";
 		String columes = "(";
@@ -202,15 +201,15 @@ class MyStatement {
 			columes = columes + name + ", ";
 			values = values + "?, ";
 		}
-		
+
 		// remove last ", "
 		columes = columes.substring(0, columes.length() - 2) + ") ";
 		values = values.substring(0, values.length() - 2) + ") ";
-		
+
 		String stmString = insert + columes + values;
 		stm = conn.prepareStatement(stmString);
 	}
-	
+
 	public void setInsertOnDuplicateStatement(String table, String... columeNames) throws SQLException {
 		String insert = "INSERT INTO " + table + " ";
 		String columes = "(";
@@ -221,115 +220,115 @@ class MyStatement {
 			values = values + "?, ";
 			onDuplicate = onDuplicate + name + " = VALUES(" + name + "), ";
 		}
-		
+
 		// remove last ", "
 		columes = columes.substring(0, columes.length() - 2) + ") ";
 		values = values.substring(0, values.length() - 2) + ") ";
 		onDuplicate = onDuplicate.substring(0, onDuplicate.length() - 2);
-		
+
 		String stmString = insert + columes + values + onDuplicate;
 		stm = conn.prepareStatement(stmString);
 	}
-	
+
 	public void setUpdateStatement(String table, String where, String... columeNames) throws SQLException {
 		String update = "UPDATE " + table + " ";
 		String columes = "SET ";
 		for (String name : columeNames) {
 			columes = columes + name + "=?, ";
 		}
-		
+
 		// remove last ", "
 		columes = columes.substring(0, columes.length() - 2) + " ";
 		String stmString = update + columes + "WHERE " + where;
 		stm = conn.prepareStatement(stmString);
 	}
-	
+
 	public void addBatch() throws SQLException {
 		stm.addBatch();
 		index = 1;
-		
+
 		if (++batchCount % BATCH_SIZE == 0) {
 			stm.executeBatch();
 		}
 	}
-	
+
 	public void close() throws SQLException {
 		stm.executeBatch();
 		stm.close();
 	}
-	
+
 	public int[] executeBatch() throws SQLException {
 		return stm.executeBatch();
 	}
-	
+
 	public void setBigInt(int index, long data) throws SQLException {
 		stm.setLong(index, data);
 	}
-	
+
 	public void setBigInt(int index, String data) throws SQLException {
 		if (data == null || data.length() == 0)
 			stm.setNull(index, java.sql.Types.BIGINT);
 		else
 			stm.setLong(index, Long.parseLong(data));
 	}
-	
+
 	public void setBlob(int index, String data) throws SQLException {
 		if (data == null)
 			stm.setNull(index, java.sql.Types.BLOB);
 		else
 			stm.setString(index, data);
 	}
-	
+
 	public void setChar(int index, String data) throws SQLException {
 		if (data == null)
 			stm.setNull(index, java.sql.Types.CHAR);
 		else
 			stm.setString(index, data);
 	}
-	
+
 	public void setDate(int index, java.sql.Date date) throws SQLException {
 		if (date == null)
 			stm.setNull(index, java.sql.Types.DATE);
 		else
 			stm.setDate(index, date);
 	}
-	
+
 	public void setDecimal(int index, String data) throws SQLException {
 		if (data == null || data.length() == 0)
 			stm.setNull(index, java.sql.Types.DECIMAL);
 		else
 			stm.setFloat(index, Float.parseFloat(data));
 	}
-	
+
 	public void setDouble(int index, String data) throws SQLException {
 		if (data == null || data.length() == 0)
 			stm.setNull(index, java.sql.Types.DOUBLE);
 		else
 			stm.setDouble(index, Double.parseDouble(data));
 	}
-	
+
 	public void setFloat(int index, float data) throws SQLException {
 		stm.setFloat(index, data);
 	}
-	
+
 	public void setFloat(int index, String data) throws SQLException {
 		if (data == null || data.length() == 0)
 			stm.setNull(index, java.sql.Types.FLOAT);
 		else
 			stm.setFloat(index, Float.parseFloat(data));
 	}
-	
+
 	public void setInt(int index, int data) throws SQLException {
 		stm.setInt(index, data);
 	}
-	
+
 	public void setInt(int index, String data) throws SQLException {
 		if (data == null || data.length() == 0)
 			stm.setNull(index, java.sql.Types.INTEGER);
 		else
 			stm.setInt(index, Integer.parseInt(data));
 	}
-	
+
 	public void setTinyInt(int index, int data) throws SQLException {
 		stm.setInt(index, data);
 	}
@@ -340,12 +339,12 @@ class MyStatement {
 		else
 			stm.setInt(index, Integer.parseInt(data));
 	}
-	
+
 	public void setObject(int index, Object data) throws SQLException {
-			stm.setObject(index, data);
+		stm.setObject(index, data);
 	}
-	
+
 	public void setObject(Object data) throws SQLException {
 		stm.setObject(index++, data);
-}
+	}
 }

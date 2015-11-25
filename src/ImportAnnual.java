@@ -11,40 +11,41 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 class AnnualData {
-	private static final String ALL_DATA = "SELECT * FROM annual WHERE StockNum=%s ORDER BY Year";
+	private static final String ALL_DATA = "SELECT * FROM annual WHERE StockNum=%s AND 總資產 > 0 ORDER BY Year";
 
 	Integer Year;
 	Integer StockNum;
-	Long 營收;
-	Long 成本;
-	Long 毛利;
-	Long 研究發展費用;
-	Long 營業利益;
-	Long 業外收支;
-	Long 稅前淨利;
-	Long 稅後淨利;
-	Long 綜合損益;
-	Long 母公司業主淨利;
-	Long 母公司業主綜合損益;
+	long 營收;
+	long 成本;
+	long 毛利;
+	long 研究發展費用;
+	long 營業利益;
+	long 業外收支;
+	long 稅前淨利;
+	long 稅後淨利;
+	long 綜合損益;
+	long 母公司業主淨利;
+	long 母公司業主綜合損益;
 	Float EPS;
-	Long 流動資產;
-	Long 存貨;
-	Long 預付款項;
-	Long 非流動資產;
-	Long 備供出售金融資產;
-	Long 持有至到期日金融資產;
-	Long 以成本衡量之金融資產;
-	Long 採用權益法之投資淨額;
-	Long 固定資產;
-	Long 總資產;
-	Long 流動負債;
-	Long 非流動負債;
-	Long 總負債;
-	Long 保留盈餘;
-	Long 股本;
-	Long 營業現金流;
-	Long 投資現金流;
-	Long 融資現金流;
+	long 流動資產;
+	long 存貨;
+	long 預付款項;
+	long 非流動資產;
+	long 備供出售金融資產;
+	long 持有至到期日金融資產;
+	long 以成本衡量之金融資產;
+	long 採用權益法之投資淨額;
+	long 固定資產;
+	long 總資產;
+	long 流動負債;
+	long 非流動負債;
+	long 總負債;
+	long 保留盈餘;
+	long 股本;
+	long 營業現金流;
+	long 投資現金流;
+	long 融資現金流;
+	long 自由現金流;
 	Boolean 現金流累計需更正;
 	Boolean 第四季累計需修正;
 
@@ -64,13 +65,15 @@ class AnnualData {
 	Float 速動比;
 	Float 營業現金對流動負債比;
 	Float 營業現金對負債比;
+	Float 營業現金流對淨利比;
+	Float 自由現金流對淨利比;
 	Float 利息保障倍數;
 	Date 除息日期;
-	Float 現金股利;
+	float 現金股利;
 	Date 除權日期;
-	Float 盈餘配股;
-	Float 資本公積;
-	Float 除權除息參考價;
+	float 盈餘配股;
+	float 資本公積;
+	float 除權除息參考價;
 
 	AnnualData() {
 
@@ -112,6 +115,7 @@ class AnnualData {
 		營業現金流 = rs.getObject(colume++, Long.class);
 		投資現金流 = rs.getObject(colume++, Long.class);
 		融資現金流 = rs.getObject(colume++, Long.class);
+		自由現金流 = rs.getObject(colume++, Long.class);
 
 		/* 以下數值若不存在 則當成null 以方便判斷是否已經存在 */
 		股東權益 = (Long) rs.getObject(colume++);
@@ -130,6 +134,8 @@ class AnnualData {
 		速動比 = (Float) rs.getObject(colume++);
 		營業現金對流動負債比 = (Float) rs.getObject(colume++);
 		營業現金對負債比 = (Float) rs.getObject(colume++);
+		營業現金流對淨利比 = (Float) rs.getObject(colume++);
+		自由現金流對淨利比 = (Float) rs.getObject(colume++);
 		利息保障倍數 = (Float) rs.getObject(colume++);
 
 		除息日期 = (Date) rs.getObject(colume++);
@@ -137,7 +143,7 @@ class AnnualData {
 		除權日期 = (Date) rs.getObject(colume++);
 		盈餘配股 = rs.getObject(colume++, Float.class);
 		資本公積 = rs.getObject(colume++, Float.class);
-		除權除息參考價 = (Float) rs.getObject(colume++);
+		除權除息參考價 = rs.getObject(colume++, Float.class);
 	}
 
 	public static AnnualData[] getAllData(MyDB db, int stockNum) throws SQLException {
@@ -180,8 +186,9 @@ class AnnualSupplement {
 		Company[] companies = Company.getAllCompanies(db);
 
 		MyStatement supplementStm = new MyStatement(db.conn);
-		supplementStm.setUpdateStatement("annual", "Year=? AND StockNum=?", "股東權益", "每股淨值", "長期投資", "毛利率", "營業利益率",
-				"稅前淨利率", "稅後淨利率", "業外收支比重", "ROA", "ROE", "權益乘數", "負債比", "流動比", "速動比", "營業現金對流動負債比", "營業現金對負債比");
+		supplementStm.setUpdateStatement("annual", "Year=? AND StockNum=?", "自由現金流", "股東權益", "每股淨值", "長期投資", "毛利率",
+				"營業利益率", "稅前淨利率", "稅後淨利率", "業外收支比重", "ROA", "ROE", "權益乘數", "負債比", "流動比", "速動比", "營業現金對流動負債比",
+				"營業現金對負債比", "營業現金流對淨利比", "自由現金流對淨利比");
 
 		for (Company company : companies) {
 
@@ -201,11 +208,10 @@ class AnnualSupplement {
 	static void supplementOtherField(MyStatement stm, int StockNum, AnnualData[] allYear) throws SQLException {
 
 		for (AnnualData qdata : allYear) {
-			if (qdata.總資產 == null)
-				continue;
-
 			if (qdata.股東權益 != null)
 				continue;
+
+			qdata.自由現金流 = qdata.營業現金流 - qdata.投資現金流;
 
 			qdata.股東權益 = qdata.總資產 - qdata.總負債;
 			if (qdata.股本 != 0)
@@ -240,6 +246,11 @@ class AnnualSupplement {
 
 			if (qdata.總負債 != 0)
 				qdata.營業現金對負債比 = (float) qdata.營業現金流 / qdata.總負債;
+			
+			if (qdata.稅後淨利 != 0) {
+				qdata.營業現金流對淨利比 = (float) qdata.營業現金流 / qdata.稅後淨利;
+				qdata.自由現金流對淨利比 = (float) qdata.自由現金流 / qdata.稅後淨利;
+			}
 
 			// TODO: data.利息保障倍數 =
 
@@ -248,6 +259,7 @@ class AnnualSupplement {
 	}
 
 	static void supplementImportToDB(MyStatement stm, int StockNum, AnnualData data) throws SQLException {
+		stm.setObject(data.自由現金流);
 		stm.setObject(data.股東權益);
 		stm.setObject(data.每股淨值);
 		stm.setObject(data.長期投資);
@@ -265,6 +277,8 @@ class AnnualSupplement {
 
 		stm.setObject(data.營業現金對流動負債比);
 		stm.setObject(data.營業現金對負債比);
+		stm.setObject(data.營業現金流對淨利比);
+		stm.setObject(data.自由現金流對淨利比);
 		// TODO: 利息保障倍數
 
 		stm.setObject(data.Year);
@@ -421,19 +435,7 @@ class Dividend {
 public class ImportAnnual {
 	public static MyDB db;
 
-	public static boolean isValidYear(int year, int lastUpdate) throws Exception {
-		int lastYear = lastUpdate / 10000;
-		int lastMonth = (lastUpdate / 100) % 100;
-
-		if (year < lastYear - 1)
-			return true;
-		else if (year == lastYear - 1 && (lastMonth > 3))
-			return true;
-
-		return false;
-	}
-
-	private static void importBasicDataNoIFRSs(MyStatement stm, int year, Company company) throws Exception {
+		private static void importBasicDataNoIFRSs(MyStatement stm, int year, Company company) throws Exception {
 		QuarterlyBasicTable income;
 		QuarterlyBasicTable balance;
 
@@ -445,7 +447,6 @@ public class ImportAnnual {
 		}
 
 		balance = new QuarterlyBasicTable(year, 4, company, QuarterlyBasicTable.BALANCE_SHEET);
-
 		if (!balance.parse()) {
 			balance = new QuarterlyBasicTable(year, 4, company, QuarterlyBasicTable.BALANCE_SHEET_IDV);
 			if (!balance.parse())
@@ -460,7 +461,17 @@ public class ImportAnnual {
 		stm.setBigInt(idx++, income.getData("營業毛利(毛損)")); // 毛利
 		stm.setBigInt(idx++, income.getData("研究發展費用")); // 研究發展費用
 		stm.setBigInt(idx++, income.getData("營業淨利(淨損)")); // 營業利益
-		stm.setBigInt(idx++, income.getData("營業外收入及利益")); // 業外收支
+		
+		long 業外收支 = 0;
+		String temp = income.getData("營業外收入及利益");
+		if (temp != null)
+			業外收支 += Long.parseLong(temp);
+		
+		temp = income.getData("營業外費用及損失");
+		if (temp != null)
+			業外收支 -= Long.parseLong(temp);
+		
+		stm.setBigInt(idx++, 業外收支); // 業外收支
 		stm.setBigInt(idx++, income.getData("繼續營業部門稅前淨利(淨損)", "繼續營業單位稅前淨利(淨損)", "繼續營業單位稅前淨益(淨損)")); // 稅前淨利
 		stm.setBigInt(idx++, income.getData("繼續營業部門淨利(淨損)", "繼續營業單位淨利(淨損)", "合併總損益")); // 稅後淨利
 		stm.setBigInt(idx++, income.getData("本期淨利(淨損)", "合併淨損益")); // 綜合損益
@@ -471,7 +482,7 @@ public class ImportAnnual {
 		stm.setBigInt(idx++, balance.getData("預付款項")); // 預付款項
 		stm.setBigInt(idx++, balance.getData("基金及投資", "基金及長期投資", "基金與投資")); // 長期投資
 		stm.setBigInt(idx++, balance.getData("固定資產淨額", "固定資產")); // 固定資產
-		stm.setBigInt(idx++, balance.getData("資產總計", "資產")); // 總資產
+		stm.setBigInt(idx++, balance.getData("資產總計", "資產", "資產合計")); // 總資產
 
 		stm.setBigInt(idx++, balance.getData("流動負債合計", "流動負債")); // 流動負債
 		stm.setBigInt(idx++, balance.getData("負債總計", "負債總額")); // 總負債
@@ -487,9 +498,12 @@ public class ImportAnnual {
 		QuarterlyBasicTable cashflow = new QuarterlyBasicTable(year, 4, company,
 				QuarterlyBasicTable.CASHFLOW_STATEMENT);
 
-		income.parse();
-		balance.parse();
-		cashflow.parse();
+		boolean incomeResult = income.parse();
+		boolean balanceResult = balance.parse();
+		boolean cashflowResult = cashflow.parse();
+
+		if (!incomeResult || !balanceResult || !cashflowResult)
+			return;
 
 		int idx = 1;
 		stm.setInt(idx++, year); // Year
@@ -551,22 +565,29 @@ public class ImportAnnual {
 			for (int i = 0; i < company.length; i++) {
 				String code = company[i].code;
 				String category = company[i].category;
-				int lastUpdate = company[i].lastUpdateInt;
 
 				// skip no data stocks
 				int stockNum = Integer.parseInt(code);
 				if (category == null || stockNum < 1000 || stockNum > 9999) {
-					// Log.info("Skip invalid stock " + code);
+					Log.info(code + " skipped: invalid stock");
 					continue;
 				}
 
-				if (!isValidYear(year, lastUpdate))
+				if (!company[i].isValidYear(year))
 					continue;
 
 				if (category.compareTo("金融保險業") == 0 || stockNum == 2807) {
-					// Log.info("Skip 金融保險業");
+					Log.info(code + " skipped: 金融保險業");
 					continue;
 				}
+				
+				if (stockNum == 2905 || stockNum == 2514 || stockNum == 1409 || stockNum == 1718) {
+					Log.info(code + " Skipped: 表格格式與人不同");
+					continue;
+				}
+				
+				if (stockNum == 8463)
+					Log.info("");
 
 				Log.info("Import BasicData " + code + " " + year);
 				Boolean isUseIFRSs = MyDB.isUseIFRSs(Integer.parseInt(code), year);
@@ -595,5 +616,4 @@ public class ImportAnnual {
 			e.printStackTrace();
 		}
 	}
-
 }

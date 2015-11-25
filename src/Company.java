@@ -24,6 +24,41 @@ public class Company {
 		this.db = db;
 	}
 	
+	public boolean isValidQuarter(int year, int quarter) {
+		int lastYear = lastUpdateInt / 10000;
+		int lastMonth = lastUpdateInt / 100 % 100;
+		int lastDay = lastUpdateInt % 100;
+
+		int lastQuarter = 0;
+		if (lastMonth > 11 || (lastMonth == 11 && lastDay > 15))
+			lastQuarter = 3;
+		else if (lastMonth > 8 || (lastMonth == 8 && lastDay > 15))
+			lastQuarter = 2;
+		else if (lastMonth > 5 || (lastMonth == 5 && lastDay > 15))
+			lastQuarter = 1;
+
+		int lastYearQuarter = lastYear * 100 + lastQuarter;
+		int targetYearQuarter = year * 100 + quarter;
+
+		if (lastYearQuarter >= targetYearQuarter) {
+			return true;
+		}
+
+		return false;
+	}
+	
+	public boolean isValidYear(int year) {
+		int lastYear = lastUpdateInt / 10000;
+		int lastMonth = (lastUpdateInt / 100) % 100;
+
+		if (year < lastYear - 1)
+			return true;
+		else if (year == lastYear - 1 && (lastMonth > 3))
+			return true;
+
+		return false;
+	}
+	
 	void fetchAllBasicData() throws Exception {
 		latestPrice = getlatestPrice();
 		fetchAllMonth();
