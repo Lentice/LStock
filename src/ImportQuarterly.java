@@ -25,7 +25,7 @@ class QuarterlyData {
 	long 綜合損益;
 	long 母公司業主淨利;
 	long 母公司業主綜合損益;
-	Float EPS;
+	float EPS;
 	long 流動資產;
 	long 存貨;
 	long 預付款項;
@@ -47,6 +47,7 @@ class QuarterlyData {
 	long 自由現金流;
 	Boolean 現金流累計需更正;
 	Boolean 第四季累計需修正;
+	Boolean 季報有缺少;
 
 	Long 股東權益;
 	Float 每股淨值;
@@ -55,10 +56,11 @@ class QuarterlyData {
 	Float 營業利益率;
 	Float 稅前淨利率;
 	Float 稅後淨利率;
+	Float 總資產週轉率;
+	Float 權益乘數;
 	Float 業外收支比重;
 	Float ROA;
 	Float ROE;
-	Float 權益乘數;
 	Float 負債比;
 	Float 流動比;
 	Float 速動比;
@@ -85,6 +87,10 @@ class QuarterlyData {
 	Float 近4季淨值年增率;
 	Float 單季固定資產年增率;
 	Float 近4季固定資產年增率;
+
+	QuarterlyData() {
+
+	}
 
 	QuarterlyData(ResultSet rs) throws SQLException {
 		int colume = 1;
@@ -125,6 +131,7 @@ class QuarterlyData {
 		自由現金流 = rs.getObject(colume++, Long.class);
 		現金流累計需更正 = rs.getObject(colume++, Boolean.class);
 		第四季累計需修正 = rs.getObject(colume++, Boolean.class);
+		季報有缺少 = rs.getObject(colume++, Boolean.class);
 
 		/* 以下數值若不存在 則當成null 以方便判斷是否已經存在 */
 		股東權益 = (Long) rs.getObject(colume++);
@@ -134,10 +141,11 @@ class QuarterlyData {
 		營業利益率 = (Float) rs.getObject(colume++);
 		稅前淨利率 = (Float) rs.getObject(colume++);
 		稅後淨利率 = (Float) rs.getObject(colume++);
+		總資產週轉率 = (Float) rs.getObject(colume++);
+		權益乘數 = (Float) rs.getObject(colume++);
 		業外收支比重 = (Float) rs.getObject(colume++);
 		ROA = (Float) rs.getObject(colume++);
 		ROE = (Float) rs.getObject(colume++);
-		權益乘數 = (Float) rs.getObject(colume++);
 		負債比 = (Float) rs.getObject(colume++);
 		流動比 = (Float) rs.getObject(colume++);
 		速動比 = (Float) rs.getObject(colume++);
@@ -242,11 +250,12 @@ class QuarterlyFixAndSupplement {
 
 		MyStatement quarter4Stm = new MyStatement(db.conn);
 		quarter4Stm.setUpdateStatement("quarterly", "YearQuarter=? AND StockNum=?", "營收", "成本", "毛利", "研究發展費用", "營業利益",
-				"業外收支", "稅前淨利", "稅後淨利", "綜合損益", "母公司業主淨利", "母公司業主綜合損益", "EPS", "營業現金流", "投資現金流", "融資現金流", "第四季累計需修正");
+				"業外收支", "稅前淨利", "稅後淨利", "綜合損益", "母公司業主淨利", "母公司業主綜合損益", "EPS", "營業現金流", "投資現金流", "融資現金流", "第四季累計需修正",
+				"季報有缺少");
 
 		MyStatement supplementStm = new MyStatement(db.conn);
 		supplementStm.setUpdateStatement("quarterly", "YearQuarter=? AND StockNum=?", "自由現金流", "股東權益", "每股淨值", "長期投資",
-				"毛利率", "營業利益率", "稅前淨利率", "稅後淨利率", "業外收支比重", "ROA", "ROE", "權益乘數", "負債比", "流動比", "速動比", "營業現金對流動負債比",
+				"毛利率", "營業利益率", "稅前淨利率", "稅後淨利率", "總資產週轉率", "權益乘數", "業外收支比重", "ROA", "ROE", "負債比", "流動比", "速動比", "營業現金對流動負債比",
 				"營業現金對負債比", "營業現金流對淨利比", "自由現金流對淨利比", "單季營收年增率", "近4季營收年增率", "單季毛利年增率", "近4季毛利年增率", "單季營業利益年增率",
 				"近4季營業利益年增率", "單季稅後淨利年增率", "近4季稅後淨利年增率", "單季EPS年增率", "近4季EPS年增率", "單季總資產年增率", "近4季總資產年增率", "單季淨值年增率",
 				"近4季淨值年增率", "單季固定資產年增率", "近4季固定資產年增率");
@@ -259,10 +268,10 @@ class QuarterlyFixAndSupplement {
 			if (data == null)
 				continue;
 
-			Log.trace("更正第4季累計 " + company.code);
-			quarter4CalculateAndImport(quarter4Stm, stockNum, data);
 			Log.trace("更正現金流累計 " + company.code);
 			cashflowCalculateAndImport(cashflowStm, stockNum, data);
+			Log.trace("更正第4季累計 " + company.code);
+			quarter4CalculateAndImport(quarter4Stm, stockNum, data);
 			Log.trace("補完剩餘欄位 " + company.code);
 			supplementOtherField(supplementStm, stockNum, data);
 		}
@@ -274,54 +283,43 @@ class QuarterlyFixAndSupplement {
 
 	static void quarter4CalculateAndImport(MyStatement stm, int StockNum, QuarterlyData[] allQuarter)
 			throws SQLException {
-		boolean start = false;
+
+		boolean lostData = false;
+
+		int firstYear = allQuarter[0].YearQuarter / 100;
 
 		for (QuarterlyData qdata : allQuarter) {
-			int year = qdata.YearQuarter / 100;
 			int quarter = qdata.YearQuarter % 100;
-
-			// 跳過沒有第一季的年度
-			if (!start && quarter != 1)
-				continue;
-			start = true;
-
-			if (qdata.第四季累計需修正 == false || quarter != 4)
+			if (quarter != 4)
 				continue;
 
-			QuarterlyData q1 = QuarterlyData.getData(allQuarter, year, 1);
-			QuarterlyData q2 = QuarterlyData.getData(allQuarter, year, 2);
-			QuarterlyData q3 = QuarterlyData.getData(allQuarter, year, 3);
-			if (q1 == null || q2 == null || q3 == null)
-				continue;
+			int year = qdata.YearQuarter / 100;
+			lostData = false;
 
-			qdata.營收 -= (q3.營收 + q2.營收 + q1.營收);
-			qdata.成本 -= (q3.成本 + q2.成本 + q1.成本);
-			qdata.毛利 -= (q3.毛利 + q2.毛利 + q1.毛利);
-			qdata.研究發展費用 -= (q3.研究發展費用 + q2.研究發展費用 + q1.研究發展費用);
-			qdata.營業利益 -= (q3.營業利益 + q2.營業利益 + q1.營業利益);
-			qdata.業外收支 -= (q3.業外收支 + q2.業外收支 + q1.業外收支);
-			qdata.稅前淨利 -= (q3.稅前淨利 + q2.稅前淨利 + q1.稅前淨利);
-			qdata.稅後淨利 -= (q3.稅後淨利 + q2.稅後淨利 + q1.稅後淨利);
-			qdata.綜合損益 -= (q3.綜合損益 + q2.綜合損益 + q1.綜合損益);
-			qdata.母公司業主淨利 -= (q3.母公司業主淨利 + q2.母公司業主淨利 + q1.母公司業主淨利);
-			qdata.母公司業主綜合損益 -= (q3.母公司業主綜合損益 + q2.母公司業主綜合損益 + q1.母公司業主綜合損益);
-			qdata.EPS -= (q3.EPS + q2.EPS + q1.EPS);
+			for (int i = 1; i < quarter; i++) {
+				QuarterlyData qSub = QuarterlyData.getData(allQuarter, year, i);
+				if (qSub == null) {
+					if (year != firstYear)
+						lostData = true;
+					continue;
+				}
 
-			// 還未修正過 所以只要扣掉第三季即可
-			if (q3.現金流累計需更正) {
-				qdata.營業現金流 -= q3.營業現金流;
-				qdata.投資現金流 -= q3.投資現金流;
-				qdata.融資現金流 -= q3.融資現金流;
-			} else if (q2.現金流累計需更正) {
-				qdata.營業現金流 -= (q3.營業現金流 + q2.營業現金流);
-				qdata.投資現金流 -= (q3.投資現金流 + q2.投資現金流);
-				qdata.融資現金流 -= (q3.融資現金流 + q2.融資現金流);
-			} else {
-				qdata.營業現金流 -= (q3.營業現金流 + q2.營業現金流 + q1.營業現金流);
-				qdata.投資現金流 -= (q3.投資現金流 + q2.投資現金流 + q1.投資現金流);
-				qdata.融資現金流 -= (q3.融資現金流 + q2.融資現金流 + q1.融資現金流);
+				qdata.營收 -= (qSub.營收);
+				qdata.成本 -= (qSub.成本);
+				qdata.毛利 -= (qSub.毛利);
+				qdata.研究發展費用 -= (qSub.研究發展費用);
+				qdata.營業利益 -= (qSub.營業利益);
+				qdata.業外收支 -= (qSub.業外收支);
+				qdata.稅前淨利 -= (qSub.稅前淨利);
+				qdata.稅後淨利 -= (qSub.稅後淨利);
+				qdata.綜合損益 -= (qSub.綜合損益);
+				qdata.母公司業主淨利 -= (qSub.母公司業主淨利);
+				qdata.母公司業主綜合損益 -= (qSub.母公司業主綜合損益);
+				qdata.EPS -= (qSub.EPS);
 			}
+
 			qdata.第四季累計需修正 = false;
+			qdata.季報有缺少 = lostData;
 
 			quarter4ImportToDB(stm, StockNum, qdata);
 		}
@@ -344,47 +342,35 @@ class QuarterlyFixAndSupplement {
 		stm.setObject(data.投資現金流);
 		stm.setObject(data.融資現金流);
 		stm.setObject(data.第四季累計需修正);
+		stm.setObject(data.季報有缺少);
 		stm.setObject(data.YearQuarter);
 		stm.setObject(StockNum);
 		stm.addBatch();
 	}
 
-	static void cashflowCalculateAndImport(MyStatement stm, int StockNum, QuarterlyData[] allQuarter)
-			throws SQLException {
-		boolean start = false;
+	static void cashflowCalculateAndImport(MyStatement stm, int StockNum, QuarterlyData[] allQuarter) throws Exception {
 
 		for (QuarterlyData qdata : allQuarter) {
-			int year = qdata.YearQuarter / 100;
-			int quarter = qdata.YearQuarter % 100;
-
-			// 跳過沒有第一季的年度
-			if (!start && quarter != 1)
-				continue;
-
-			start = true;
 
 			if (qdata.現金流累計需更正 == false)
 				continue;
 
-			QuarterlyData q1 = QuarterlyData.getData(allQuarter, year, 1);
-			QuarterlyData q2 = QuarterlyData.getData(allQuarter, year, 2);
-			if (q1 == null || q2 == null)
-				continue;
+			int year = qdata.YearQuarter / 100;
+			int quarter = qdata.YearQuarter % 100;
 
-			// 第四季另外處理
-			if (quarter == 2) {
-				qdata.營業現金流 -= q1.營業現金流;
-				qdata.投資現金流 -= q1.投資現金流;
-				qdata.融資現金流 -= q1.融資現金流;
-			} else if (quarter == 3 && q2.現金流累計需更正) {
-				qdata.營業現金流 -= q2.營業現金流;
-				qdata.投資現金流 -= q2.投資現金流;
-				qdata.融資現金流 -= q2.融資現金流;
-			} else if (quarter == 3 && !q2.現金流累計需更正) {
-				qdata.營業現金流 -= (q2.營業現金流 + q1.營業現金流);
-				qdata.投資現金流 -= (q2.投資現金流 + q1.投資現金流);
-				qdata.融資現金流 -= (q2.融資現金流 + q1.融資現金流);
+			for (int i = 1; i < quarter; i++) {
+				QuarterlyData qSub = QuarterlyData.getData(allQuarter, year, i);
+				if (qSub == null)
+					continue;
+
+				if (qSub.現金流累計需更正)
+					throw new Exception();
+
+				qdata.營業現金流 -= qSub.營業現金流;
+				qdata.投資現金流 -= qSub.投資現金流;
+				qdata.融資現金流 -= qSub.融資現金流;
 			}
+
 			qdata.現金流累計需更正 = false;
 
 			cashflowImportToDB(stm, StockNum, qdata);
@@ -439,6 +425,7 @@ class QuarterlyFixAndSupplement {
 			if (qdata.總資產 != 0) {
 				qdata.ROA = (float) qdata.稅後淨利 / qdata.總資產;
 				qdata.負債比 = (float) qdata.總負債 / qdata.總資產;
+				qdata.總資產週轉率 = (float) qdata.營收 / qdata.總資產;
 			}
 
 			if (qdata.股東權益 != 0) {
@@ -544,10 +531,11 @@ class QuarterlyFixAndSupplement {
 		stm.setObject(data.營業利益率);
 		stm.setObject(data.稅前淨利率);
 		stm.setObject(data.稅後淨利率);
+		stm.setObject(data.總資產週轉率);
+		stm.setObject(data.權益乘數);
 		stm.setObject(data.業外收支比重);
 		stm.setObject(data.ROA);
 		stm.setObject(data.ROE);
-		stm.setObject(data.權益乘數);
 		stm.setObject(data.負債比);
 		stm.setObject(data.流動比);
 		stm.setObject(data.速動比);
@@ -697,13 +685,13 @@ class QuarterlyBasicTable {
 			Elements eColumes = eTableRows.get(i).children();
 			if (eColumes.size() < 2)
 				continue;
-			
+
 			data[i][0] = HtmlParser.getText(eColumes.get(0));
 			data[i][1] = HtmlParser.getText(eColumes.get(1));
-			
+
 			if (!useIFRSs && data[i][1] != null)
 				data[i][1] = data[i][1].replace(".00", "");
-			
+
 		}
 
 		return true;
@@ -831,7 +819,7 @@ class QuarterlyBasicTable {
 	public String getData(String... names) {
 		if (data == null)
 			return null;
-		
+
 		boolean foundTitle = false;
 		String tempData = null;
 		for (String name : names) {
@@ -909,16 +897,16 @@ public class ImportQuarterly {
 		stm.setBigInt(idx++, income.getData("營業毛利(毛損)")); // 毛利
 		stm.setBigInt(idx++, income.getData("研究發展費用")); // 研究發展費用
 		stm.setBigInt(idx++, income.getData("營業淨利(淨損)")); // 營業利益
-		
+
 		long 業外收支 = 0;
 		String temp = income.getData("營業外收入及利益");
 		if (temp != null)
 			業外收支 += Long.parseLong(temp);
-		
+
 		temp = income.getData("營業外費用及損失");
 		if (temp != null)
 			業外收支 -= Long.parseLong(temp);
-		
+
 		stm.setBigInt(idx++, 業外收支); // 業外收支
 		stm.setBigInt(idx++, income.getData("繼續營業部門稅前淨利(淨損)", "繼續營業單位稅前淨利(淨損)", "繼續營業單位稅前淨益(淨損)")); // 稅前淨利
 		stm.setBigInt(idx++, income.getData("繼續營業部門淨利(淨損)", "繼續營業單位淨利(淨損)", "合併總損益")); // 稅後淨利
@@ -937,7 +925,7 @@ public class ImportQuarterly {
 		stm.setBigInt(idx++, balance.getData("保留盈餘合計")); // 保留盈餘
 		stm.setBigInt(idx++, balance.getData("普通股股本", "股 本", "股本")); // 股本
 
-		stm.setTinyInt(idx++, (quarter == 1 || quarter == 4) ? 0 : 1); // 現金流累計需更正
+		stm.setTinyInt(idx++, (quarter == 1) ? 0 : 1); // 現金流累計需更正
 		stm.setTinyInt(idx++, (quarter == 4) ? 1 : 0); // 第四季累計需修正
 		stm.addBatch();
 	}
@@ -993,7 +981,7 @@ public class ImportQuarterly {
 		stm.setBigInt(idx++, cashflow.getData("營業活動之淨現金流入（流出）")); // 營業現金流
 		stm.setBigInt(idx++, cashflow.getData("投資活動之淨現金流入（流出）")); // 投資現金流
 		stm.setBigInt(idx++, cashflow.getData("籌資活動之淨現金流入（流出）")); // 融資現金流
-		stm.setTinyInt(idx++, (quarter == 1 || quarter == 4) ? 0 : 1); // 現金流累計需更正
+		stm.setTinyInt(idx++, (quarter == 1) ? 0 : 1); // 現金流累計需更正
 		stm.setTinyInt(idx++, (quarter == 4) ? 1 : 0); // 第四季累計需修正
 		stm.addBatch();
 	}
