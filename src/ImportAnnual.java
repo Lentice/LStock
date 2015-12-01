@@ -26,7 +26,7 @@ class AnnualData {
 	long 綜合損益;
 	long 母公司業主淨利;
 	long 母公司業主綜合損益;
-	Float EPS;
+	float EPS;
 	long 流動資產;
 	long 存貨;
 	long 預付款項;
@@ -56,10 +56,11 @@ class AnnualData {
 	Float 營業利益率;
 	Float 稅前淨利率;
 	Float 稅後淨利率;
+	Float 總資產週轉率;
+	Float 權益乘數;
 	Float 業外收支比重;
 	Float ROA;
 	Float ROE;
-	Float 權益乘數;
 	Float 負債比;
 	Float 流動比;
 	Float 速動比;
@@ -125,10 +126,11 @@ class AnnualData {
 		營業利益率 = (Float) rs.getObject(colume++);
 		稅前淨利率 = (Float) rs.getObject(colume++);
 		稅後淨利率 = (Float) rs.getObject(colume++);
+		總資產週轉率 = (Float) rs.getObject(colume++);
+		權益乘數 = (Float) rs.getObject(colume++);
 		業外收支比重 = (Float) rs.getObject(colume++);
 		ROA = (Float) rs.getObject(colume++);
 		ROE = (Float) rs.getObject(colume++);
-		權益乘數 = (Float) rs.getObject(colume++);
 		負債比 = (Float) rs.getObject(colume++);
 		流動比 = (Float) rs.getObject(colume++);
 		速動比 = (Float) rs.getObject(colume++);
@@ -187,7 +189,7 @@ class AnnualSupplement {
 
 		MyStatement supplementStm = new MyStatement(db.conn);
 		supplementStm.setUpdateStatement("annual", "Year=? AND StockNum=?", "自由現金流", "股東權益", "每股淨值", "長期投資", "毛利率",
-				"營業利益率", "稅前淨利率", "稅後淨利率", "業外收支比重", "ROA", "ROE", "權益乘數", "負債比", "流動比", "速動比", "營業現金對流動負債比",
+				"營業利益率", "稅前淨利率", "稅後淨利率", "總資產週轉率", "權益乘數", "業外收支比重", "ROA", "ROE", "負債比", "流動比", "速動比", "營業現金對流動負債比",
 				"營業現金對負債比", "營業現金流對淨利比", "自由現金流對淨利比");
 
 		for (Company company : companies) {
@@ -232,7 +234,9 @@ class AnnualSupplement {
 			if (qdata.總資產 != 0) {
 				qdata.ROA = (float) qdata.稅後淨利 / qdata.總資產;
 				qdata.負債比 = (float) qdata.總負債 / qdata.總資產;
+				qdata.總資產週轉率 = (float) qdata.營收 / qdata.總資產;
 			}
+
 			if (qdata.股東權益 != 0) {
 				qdata.ROE = (float) qdata.稅後淨利 / qdata.股東權益;
 				qdata.權益乘數 = (float) qdata.總資產 / qdata.股東權益;
@@ -267,10 +271,11 @@ class AnnualSupplement {
 		stm.setObject(data.營業利益率);
 		stm.setObject(data.稅前淨利率);
 		stm.setObject(data.稅後淨利率);
+		stm.setObject(data.總資產週轉率);
+		stm.setObject(data.權益乘數);
 		stm.setObject(data.業外收支比重);
 		stm.setObject(data.ROA);
 		stm.setObject(data.ROE);
-		stm.setObject(data.權益乘數);
 		stm.setObject(data.負債比);
 		stm.setObject(data.流動比);
 		stm.setObject(data.速動比);

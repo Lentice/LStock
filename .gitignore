@@ -62,3 +62,6 @@ Data/
 
 # Private Data
 Strategy/
+
+# Binary Data
+bin/

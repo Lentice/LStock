@@ -270,10 +270,16 @@ class DailyTradeStocks {
 
 		int idx;
 		while (data.hasNext()) {
+			
 
 			String[] row = data.next();
-			idx = 1;
-			companyST.setInt(idx++, Integer.parseInt(row[0])); // StockNum
+			
+			/* 元上證  = 006206 ; 飛捷 = 6206 */
+			if (row[0].compareTo("006206") == 0)
+				continue;
+			
+			idx = 1;			companyST.setInt(idx++, Integer.parseInt(row[0])); // StockNum
+
 			companyST.setChar(idx++, row[0]); // Code
 			companyST.setChar(idx++, row[1]); // Name
 			companyST.setDate(idx++, date); // last_update
@@ -281,7 +287,7 @@ class DailyTradeStocks {
 
 			idx = 1;
 			dailyST.setDate(idx++, date); // Date
-			dailyST.setInt(idx++, row[0]); // StockNum
+			dailyST.setInt(idx++, row[0]); //StockNumm
 			dailyST.setBigInt(idx++, row[2]); // 成交股數
 			dailyST.setBigInt(idx++, row[3]); // 成交筆數
 			dailyST.setBigInt(idx++, row[4]); // 成交金額
