@@ -2,8 +2,6 @@ import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Company {
 	public String code;
@@ -128,13 +126,14 @@ public class Company {
 			query = "SELECT * FROM company";
 		ResultSet companySet = compST.executeQuery(query);
 		companySet.last();
-		int numRow = companySet.getRow();
+		int numCompany = companySet.getRow();
 		companySet.beforeFirst();
 
-		if (numRow == 0)
+		if (numCompany == 0)
 			return null;
 
-		List<Company> companyList = new ArrayList<>();
+		Company[] companies = new Company[numCompany];
+		int idx = 0;
 		while (companySet.next()) {
 			Company info = new Company(db);
 			info.code = companySet.getString("Code");
@@ -143,10 +142,11 @@ public class Company {
 			info.category = companySet.getString("產業別");
 			info.lastUpdateDate = companySet.getDate("last_update");
 			info.lastUpdateInt = Integer.parseInt(info.lastUpdateDate.toString().replaceAll("-", ""));
-			companyList.add(info);
+			companies[idx] = info;
+			idx++;
 		}
 
 		compST.close();
-		return companyList.toArray(new Company[0]);
+		return companies;
 	}
 }

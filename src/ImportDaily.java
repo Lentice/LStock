@@ -10,8 +10,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -19,7 +21,8 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 class DailyData {
-	//private static final String ALL_DATA = "SELECT * FROM daily WHERE StockNum=%s ORDER BY Date";
+	// private static final String ALL_DATA = "SELECT * FROM daily WHERE
+	// StockNum=%s ORDER BY Date";
 
 	Date Date;
 	Integer StockNum;
@@ -31,20 +34,20 @@ class DailyData {
 	Float 最低價;
 	Float 收盤價;
 	Float 本益比;
-	
+
 	DailyData() {
-		
+
 	}
-	
+
 	public static DailyData queryData(MyDB db, Date date, int stockNum) throws Exception {
 		Statement stm = db.conn.createStatement();
-		String query = "SELECT * FROM daily WHERE Date = \'" + date +"\' AND StockNum = " + stockNum;
-		
+		String query = "SELECT * FROM daily WHERE Date = \'" + date + "\' AND StockNum = " + stockNum;
+
 		ResultSet rs = stm.executeQuery(query);
 		if (!rs.first()) {
 			return null;
 		}
-		
+
 		DailyData data = new DailyData();
 		data.Date = date;
 		data.StockNum = stockNum;
@@ -56,7 +59,7 @@ class DailyData {
 		data.最低價 = rs.getFloat("最低價");
 		data.收盤價 = rs.getFloat("收盤價");
 		stm.close();
-		 
+
 		return data;
 	}
 }
@@ -67,15 +70,16 @@ class DailyData {
  * @author LenticeTsai
  *
  */
-class DailyTaiEx {
+class DailyTaiEx implements Runnable {
 	static final String folderPath = Environment.DailyTaiExPath;
-	static final int NUM_COLUME = 5;
+	static final int NUM_COLUMN = 5;
+	static MyStatement stm;
+	static Object lock = new Object();
 
 	int year;
 	int month;
 
 	File file;
-
 	String[][] data;
 
 	DailyTaiEx(int year, int month) throws Exception {
@@ -107,7 +111,7 @@ class DailyTaiEx {
 		if (eTRs.size() == 0)
 			throw new Exception("eTRs size is 0");
 
-		data = new String[eTRs.size() - 2][NUM_COLUME];
+		data = new String[eTRs.size() - 2][NUM_COLUMN];
 		for (int i = 0; i < data.length; i++) {
 			Elements eTDs = eTRs.get(i + 2).children();
 			String[] date = HtmlParser.getText(eTDs.get(0)).split("/");
@@ -121,20 +125,27 @@ class DailyTaiEx {
 		return true;
 	}
 
-	public void importToDB(MyStatement stm) throws Exception {
-		Log.info("Process " + file.getName());
+	public void run() {
+		try {
+			Log.info("Process " + file.getName());
 
-		if (!parse())
-			return;
+			if (!parse())
+				return;
 
-		for (int j = 0; j < data.length; j++) {
-			int idx = 1;
-			stm.setDate(idx++, Date.valueOf(data[j][0])); // Date
-			stm.setDecimal(idx++, data[j][2]); // 開盤指數
-			stm.setDecimal(idx++, data[j][1]); // 最高指數
-			stm.setDecimal(idx++, data[j][3]); // 最低指數
-			stm.setDecimal(idx++, data[j][4]); // 收盤指數
-			stm.addBatch();
+			synchronized (lock) {
+				for (int j = 0; j < data.length; j++) {
+					int idx = 1;
+					stm.setDate(idx++, Date.valueOf(data[j][0])); // Date
+					stm.setDecimal(idx++, data[j][2]); // 開盤指數
+					stm.setDecimal(idx++, data[j][1]); // 最高指數
+					stm.setDecimal(idx++, data[j][3]); // 最低指數
+					stm.setDecimal(idx++, data[j][4]); // 收盤指數
+					stm.addBatch();
+				}
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
@@ -165,7 +176,7 @@ class DailyTaiEx {
 			System.exit(-1);
 		}
 
-		MyStatement stm = new MyStatement(db.conn);
+		stm = new MyStatement(db.conn);
 		stm.setInsertOnDuplicateStatement("daily_summary", "Date", "開盤指數", "最高指數", "最低指數", "收盤指數");
 
 		Calendar endCal = Calendar.getInstance();
@@ -176,21 +187,37 @@ class DailyTaiEx {
 		int year = yearMonth / 100;
 		int month = yearMonth % 100;
 
+		ExecutorService service = Executors.newFixedThreadPool(20);
+		List<Future<?>> futures = new ArrayList<>();
+
 		while (year < eYear || (year == eYear && month <= eMonth)) {
 
-			DailyTaiEx taiEx = new DailyTaiEx(year, month);
-			taiEx.importToDB(stm);
+			Future<?> f = service.submit(new DailyTaiEx(year, month));
+			futures.add(f);
 
 			if (++month > 12) {
 				year++;
 				month = 1;
 			}
 		}
+
+		// wait for all tasks to complete before continuing
+		for (Future<?> f : futures) {
+			f.get();
+		}
+		service.shutdownNow();
+
 		stm.close();
 	}
 }
 
-class DailyTradeStocks {
+class DailyTradeStocks implements Runnable {
+	public static Object lock = new Object();
+	static MyDB db;
+	static MyStatement companyST;
+	static MyStatement taiEx;
+	static MyStatement dailyST;
+
 	static final String folderPath = Environment.DailyTradeStocksPath;
 	int year;
 	int month;
@@ -202,12 +229,12 @@ class DailyTradeStocks {
 	BufferedReader fileBR;
 	String[] taiExData = null;
 
-	Iterator<String[]> data;
+	List<String[]> rows;
 
-	DailyTradeStocks(int year, int month, int day) throws Exception {
-		this.year = year;
-		this.month = month;
-		this.day = day;
+	DailyTradeStocks(Calendar cal) throws Exception {
+		year = cal.get(Calendar.YEAR);
+		month = cal.get(Calendar.MONTH) + 1;
+		day = cal.get(Calendar.DATE);
 
 		String filename = String.format("%04d%02d%02d.csv", year, month, day);
 		file = new File(folderPath + filename);
@@ -236,7 +263,6 @@ class DailyTradeStocks {
 
 			if (line.contains("1.一般股票")) {
 				taiExData = parseDailyCsvLine(line);
-
 			}
 
 			if (line.contains("證券名稱")) {
@@ -245,7 +271,10 @@ class DailyTradeStocks {
 			}
 		}
 
-		List<String[]> rows = new ArrayList<>();
+		if (noData)
+			return false;
+
+		rows = new ArrayList<>(2000);
 		while ((line = fileBR.readLine()) != null) {
 			if (line.indexOf(',') == -1)
 				continue;
@@ -257,54 +286,57 @@ class DailyTradeStocks {
 			rows.add(row);
 		}
 
-		data = rows.iterator();
 		date = Date.valueOf(String.format("%04d-%02d-%02d", year, month, day));
 		fileBR.close();
 
 		return true;
 	}
 
-	public void importToDB(MyDB db, MyStatement companyST, MyStatement taiEx, MyStatement dailyST) throws Exception {
-		if (!parse())
-			return;
+	public void run() {
+		try {
+			if (!parse())
+				return;
 
-		int idx;
-		while (data.hasNext()) {
-			
+			synchronized (lock) {
+				int idx;
+				for (String[] row : rows) {
 
-			String[] row = data.next();
-			
-			/* 元上證  = 006206 ; 飛捷 = 6206 */
-			if (row[0].compareTo("006206") == 0)
-				continue;
-			
-			idx = 1;			companyST.setInt(idx++, Integer.parseInt(row[0])); // StockNum
+					/* 元上證 = 006206 ; 飛捷 = 6206 */
+					if (row[0].equals("006206"))
+						continue;
 
-			companyST.setChar(idx++, row[0]); // Code
-			companyST.setChar(idx++, row[1]); // Name
-			companyST.setDate(idx++, date); // last_update
-			companyST.addBatch();
+					idx = 1;
+					companyST.setInt(idx++, Integer.parseInt(row[0])); // StockNum
+					companyST.setChar(idx++, row[0]); // Code
+					companyST.setChar(idx++, row[1]); // Name
+					companyST.setDate(idx++, date); // last_update
+					companyST.addBatch();
 
-			idx = 1;
-			dailyST.setDate(idx++, date); // Date
-			dailyST.setInt(idx++, row[0]); //StockNumm
-			dailyST.setBigInt(idx++, row[2]); // 成交股數
-			dailyST.setBigInt(idx++, row[3]); // 成交筆數
-			dailyST.setBigInt(idx++, row[4]); // 成交金額
-			dailyST.setDecimal(idx++, row[5]); // 開盤價
-			dailyST.setDecimal(idx++, row[6]); // 最高價
-			dailyST.setDecimal(idx++, row[7]); // 最低價
-			dailyST.setDecimal(idx++, row[8]); // 收盤價
-			dailyST.setDecimal(idx++, row[15]); // 本益比
-			dailyST.addBatch();
+					idx = 1;
+					dailyST.setDate(idx++, date); // Date
+					dailyST.setInt(idx++, row[0]); // StockNumm
+					dailyST.setBigInt(idx++, row[2]); // 成交股數
+					dailyST.setBigInt(idx++, row[3]); // 成交筆數
+					dailyST.setBigInt(idx++, row[4]); // 成交金額
+					dailyST.setDecimal(idx++, row[5]); // 開盤價
+					dailyST.setDecimal(idx++, row[6]); // 最高價
+					dailyST.setDecimal(idx++, row[7]); // 最低價
+					dailyST.setDecimal(idx++, row[8]); // 收盤價
+					dailyST.setDecimal(idx++, row[15]); // 本益比
+					dailyST.addBatch();
+				}
+
+				idx = 1;
+				taiEx.setDate(idx++, date); // Date
+				taiEx.setBigInt(idx++, taiExData[1]); // 成交金額
+				taiEx.setBigInt(idx++, taiExData[2]); // 成交股數
+				taiEx.setBigInt(idx++, taiExData[3]); // 成交筆數
+				taiEx.addBatch();
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-
-		idx = 1;
-		taiEx.setDate(idx++, date); // Date
-		taiEx.setBigInt(idx++, taiExData[1]); // 成交金額
-		taiEx.setBigInt(idx++, taiExData[2]); // 成交股數
-		taiEx.setBigInt(idx++, taiExData[3]); // 成交筆數
-		taiEx.addBatch();
 	}
 
 	protected boolean isStringFloat(String s) {
@@ -340,7 +372,7 @@ class DailyTradeStocks {
 			rowData[i] = rowData[i].trim();
 
 			// 未交易 沒有數值
-			if (rowData[i].length() == 2 && rowData[i].compareTo("--") == 0)
+			if (rowData[i].equals("--"))
 				rowData[i] = null;
 		}
 
@@ -366,7 +398,7 @@ class DailyTradeStocks {
 			throw new Exception("Date is earlier than 2004/2/11");
 
 		String postData = String.format("download=csv&qdate=%s&selectType=ALLBUT0999",
-				URLEncoder.encode(twDate, "UTF-8"));
+		        URLEncoder.encode(twDate, "UTF-8"));
 
 		if (Downloader.httpDownload(urlTWSE, postData, filename) != 0) {
 			Log.warn("Fail");
@@ -376,7 +408,7 @@ class DailyTradeStocks {
 		return 0;
 	}
 
-	public static void supplementDB(MyDB db) throws Exception {
+	public static void supplementDB(MyDB myDB) throws Exception {
 
 		File importDir = new File(Environment.DailyTradeStocksPath);
 		if (!importDir.exists()) {
@@ -384,27 +416,35 @@ class DailyTradeStocks {
 			System.exit(-1);
 		}
 
-		String insertComp = "INSERT INTO company (StockNum, Code, Name, last_update) " + "VALUES (?, ?, ?, ?) "
-				+ "ON DUPLICATE KEY UPDATE last_update = IF(last_update < VALUES(last_update), VALUES(last_update), last_update)";
-		MyStatement companyST = new MyStatement(db.conn, insertComp);
+		db = myDB;
 
-		MyStatement taiEx = new MyStatement(db.conn);
+		final String insertComp = "INSERT INTO company (StockNum, Code, Name, last_update) " + "VALUES (?, ?, ?, ?) "
+		        + "ON DUPLICATE KEY UPDATE last_update = IF(last_update < VALUES(last_update), VALUES(last_update), last_update)";
+		companyST = new MyStatement(db.conn, insertComp);
+
+		taiEx = new MyStatement(db.conn);
 		taiEx.setInsertOnDuplicateStatement("daily_summary", "Date", "成交金額", "成交股數", "成交筆數");
 
-		MyStatement dailyST = new MyStatement(db.conn);
+		dailyST = new MyStatement(db.conn);
 		dailyST.setInsertIgnoreStatement("daily", "Date", "StockNum", "成交股數", "成交筆數", "成交金額", "開盤價", "最高價", "最低價",
-				"收盤價", "本益比");
+		        "收盤價", "本益比");
 
 		Calendar startCal = db.getLastDailyTradeDate();
 		Calendar endCal = Calendar.getInstance();
+
+		ExecutorService service = Executors.newFixedThreadPool(20);
+		List<Future<?>> futures = new ArrayList<>();
+
 		while (startCal.compareTo(endCal) <= 0) {
-
-			DailyTradeStocks trade = new DailyTradeStocks(startCal.get(Calendar.YEAR), startCal.get(Calendar.MONTH) + 1,
-					startCal.get(Calendar.DATE));
-			trade.importToDB(db, companyST, taiEx, dailyST);
-
+			futures.add(service.submit(new DailyTradeStocks(startCal)));
 			startCal.add(Calendar.DATE, 1);
 		}
+
+		// wait for all tasks to complete before continuing
+		for (Future<?> f : futures) {
+			f.get();
+		}
+		service.shutdownNow();
 
 		companyST.close();
 		dailyST.close();

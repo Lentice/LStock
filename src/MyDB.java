@@ -85,13 +85,18 @@ public class MyDB {
 		p.put("useUnicode", "TRUE");
 		p.put("user", PrivateInfo.USERNAME);
 		p.put("password", PrivateInfo.PASSWORD);
+		p.put("rewriteBatchedStatements", "TRUE");
+		p.put("MaxPooledStatements", "100");
 
 		Log.trace("Connect to SQL...");
 		conn = DriverManager.getConnection(PrivateInfo.SQL_LINK, p);
+		conn.setAutoCommit(false);
 		Log.trace("SQL Connected.");
 	}
 
 	public void close() throws SQLException {
+		conn.commit();
+		conn.setAutoCommit(true);
 		conn.close();
 	}
 
@@ -176,7 +181,7 @@ public class MyDB {
 }
 
 class MyStatement {
-	static final int BATCH_SIZE = 2000;
+	static final int BATCH_SIZE = 500;
 
 	PreparedStatement stm;
 	int batchCount;
@@ -193,63 +198,64 @@ class MyStatement {
 		batchCount = 0;
 	}
 
-	public void setInsertIgnoreStatement(String table, String... columeNames) throws SQLException {
+	public void setInsertIgnoreStatement(String table, String... columnNames) throws SQLException {
 		String insert = "INSERT IGNORE INTO " + table + " ";
-		String columes = "(";
+		String columns = "(";
 		String values = "VALUES (";
-		for (String name : columeNames) {
-			columes = columes + name + ", ";
+		for (String name : columnNames) {
+			columns = columns + name + ", ";
 			values = values + "?, ";
 		}
 
 		// remove last ", "
-		columes = columes.substring(0, columes.length() - 2) + ") ";
+		columns = columns.substring(0, columns.length() - 2) + ") ";
 		values = values.substring(0, values.length() - 2) + ") ";
 
-		String stmString = insert + columes + values;
+		String stmString = insert + columns + values;
 		stm = conn.prepareStatement(stmString);
 	}
 
-	public void setInsertOnDuplicateStatement(String table, String... columeNames) throws SQLException {
+	public void setInsertOnDuplicateStatement(String table, String... columnNames) throws SQLException {
 		String insert = "INSERT INTO " + table + " ";
-		String columes = "(";
+		String columns = "(";
 		String values = "VALUES (";
 		String onDuplicate = "ON DUPLICATE KEY UPDATE ";
-		for (String name : columeNames) {
-			columes = columes + name + ", ";
+		for (String name : columnNames) {
+			columns = columns + name + ", ";
 			values = values + "?, ";
 			onDuplicate = onDuplicate + name + " = VALUES(" + name + "), ";
 		}
 
 		// remove last ", "
-		columes = columes.substring(0, columes.length() - 2) + ") ";
+		columns = columns.substring(0, columns.length() - 2) + ") ";
 		values = values.substring(0, values.length() - 2) + ") ";
 		onDuplicate = onDuplicate.substring(0, onDuplicate.length() - 2);
 
-		String stmString = insert + columes + values + onDuplicate;
+		String stmString = insert + columns + values + onDuplicate;
 		stm = conn.prepareStatement(stmString);
 	}
 
-	public void setUpdateStatement(String table, String where, String... columeNames) throws SQLException {
+	public void setUpdateStatement(String table, String where, String... columnNames) throws SQLException {
 		String update = "UPDATE " + table + " ";
-		String columes = "SET ";
-		for (String name : columeNames) {
-			columes = columes + name + "=?, ";
+		String columns = "SET ";
+		for (String name : columnNames) {
+			columns = columns + name + "=?, ";
 		}
 
 		// remove last ", "
-		columes = columes.substring(0, columes.length() - 2) + " ";
-		String stmString = update + columes + "WHERE " + where;
+		columns = columns.substring(0, columns.length() - 2) + " ";
+		String stmString = update + columns + "WHERE " + where;
 		stm = conn.prepareStatement(stmString);
 	}
 
 	public void addBatch() throws SQLException {
 		stm.addBatch();
-		index = 1;
-
 		if (++batchCount % BATCH_SIZE == 0) {
 			stm.executeBatch();
+			//conn.commit();
 		}
+		
+		index = 1;
 	}
 
 	public void close() throws SQLException {

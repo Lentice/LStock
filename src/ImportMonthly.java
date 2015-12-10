@@ -4,13 +4,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.List;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
-
 
 class MonthlyData {
 	private static final String ALL_DATA = "SELECT * FROM monthly WHERE StockNum=%s ORDER BY YearMonth";
@@ -25,24 +26,23 @@ class MonthlyData {
 	Long 當月累計營收;
 	Long 去年累計營收;
 	Float 前期比較增減;
-	
+
 	MonthlyData() {
 	}
 
 	MonthlyData(ResultSet rs) throws SQLException {
-		int colume = 1;
 
 		/* 以下數值若不存在 則當成0 以方便計算 */
-		YearMonth = (Integer) rs.getObject(colume++, Integer.class);
-		StockNum = (Integer) rs.getObject(colume++, Integer.class);
-		當月營收 = rs.getObject(colume++, Long.class);
-		上月營收 = rs.getObject(colume++, Long.class);
-		去年當月營收 = rs.getObject(colume++, Long.class);
-		上月比較增減 = rs.getObject(colume++, Float.class);
-		去年同月增減 = rs.getObject(colume++, Float.class);
-		當月累計營收 = rs.getObject(colume++, Long.class);
-		去年累計營收 = rs.getObject(colume++, Long.class);
-		前期比較增減 = rs.getObject(colume++, Float.class);
+		YearMonth = (Integer) rs.getObject("YearMonth", Integer.class);
+		StockNum = (Integer) rs.getObject("StockNum", Integer.class);
+		當月營收 = rs.getObject("當月營收", Long.class);
+		上月營收 = rs.getObject("上月營收", Long.class);
+		去年當月營收 = rs.getObject("去年當月營收", Long.class);
+		上月比較增減 = rs.getObject("上月比較增減", Float.class);
+		去年同月增減 = rs.getObject("去年同月增減", Float.class);
+		當月累計營收 = rs.getObject("當月累計營收", Long.class);
+		去年累計營收 = rs.getObject("去年累計營收", Long.class);
+		前期比較增減 = rs.getObject("前期比較增減", Float.class);
 	}
 
 	public static MonthlyData[] getAllData(MyDB db, int stockNum) throws SQLException {
@@ -69,7 +69,7 @@ class MonthlyData {
 		result.beforeFirst();
 		return numRow;
 	}
-	
+
 	static MonthlyData getData(MonthlyData[] allData, int year, int month) throws SQLException {
 		for (MonthlyData data : allData) {
 			if (data.YearMonth / 100 == year && data.YearMonth % 100 == month) {
@@ -82,7 +82,11 @@ class MonthlyData {
 
 class MonthlyRevenue {
 	private static final String folderPath = Environment.MonthlyRevenuePath;
-	private static final int MonthlyRevenueMaxColume = 11;
+	private static final int MonthlyRevenueMaxColumn = 11;
+
+	static MyDB db;
+	static MyStatement companyST;
+	static MyStatement monthST;
 
 	File file;
 	int year;
@@ -122,17 +126,8 @@ class MonthlyRevenue {
 		if (eAllCategories.size() == 0)
 			return false;
 
-		categoryList = new ArrayList<>();
-		tableList = new ArrayList<>();
-		for (int i = 0; i < eAllCategories.size(); i++) {
-			String name = eAllCategories.get(i).text().replaceFirst("產業別：", "").trim();
-			
-			int remove = name.indexOf('（');
-			if (remove != -1) {
-				name = name.substring(0, remove);
-			}
-			categoryList.add(name);
-		}
+		categoryList = new ArrayList<>(20);
+		tableList = new ArrayList<>(100);
 
 		Elements eTitles = doc.getElementsContainingOwnText("公司名稱");
 		for (int iTable = 0; iTable < eAllCategories.size(); iTable++) {
@@ -146,7 +141,7 @@ class MonthlyRevenue {
 			String[][] rows = new String[eTableRows.size() - dropHead - dropTail][];
 			for (int iRow = dropHead; iRow < eTableRows.size() - dropTail; iRow++) {
 				Elements eRow = eTableRows.get(iRow).children();
-				String[] data = new String[MonthlyRevenueMaxColume];
+				String[] data = new String[MonthlyRevenueMaxColumn];
 				for (int k = 0; k < eRow.size(); k++) {
 					data[k] = HtmlParser.getText(eRow.get(k));
 					if (data[k] != null) {
@@ -157,12 +152,19 @@ class MonthlyRevenue {
 							else if (k == 10 && Character.compare(firstChar, '無') == 0)
 								data[k] = null;
 
-						} else if (data[k].length() == 3 && data[k].compareTo("不適用") == 0)
+						} else if (data[k].equals("不適用"))
 							data[k] = null;
 					}
 				}
 				rows[iRow - dropHead] = data;
 			}
+
+			String category = eAllCategories.get(iTable).text().replaceFirst("產業別：", "").trim();
+			int remove = category.indexOf('（');
+			if (remove != -1) {
+				category = category.substring(0, remove);
+			}
+			categoryList.add(category);
 			tableList.add(rows);
 		}
 
@@ -177,14 +179,9 @@ class MonthlyRevenue {
 
 		String category;
 
-		String update = "UPDATE company SET 產業別 = ? WHERE StockNum = ?";
-		MyStatement companyST = new MyStatement(db.conn, update);
-
-		MyStatement monthST = new MyStatement(db.conn);
-		monthST.setInsertIgnoreStatement("monthly", "YearMonth", "StockNum", "當月營收", "上月營收", "去年當月營收", "上月比較增減",
-				"去年同月增減", "當月累計營收", "去年累計營收", "前期比較增減", "備註");
-
-		for (int i = 0; i < tableList.size(); i++) { // use tableList.size because some category have no data.
+		for (int i = 0; i < tableList.size(); i++) { // use tableList.size
+														// because some category
+														// have no data.
 			category = categoryList.get(i);
 			String[][] table = tableList.get(i);
 			Log.dbg(String.format("%04d_%02d %s", year, month, category));
@@ -212,9 +209,7 @@ class MonthlyRevenue {
 				monthST.addBatch();
 			}
 		}
-		companyST.close();
-		monthST.close();
-		
+
 		return true;
 	}
 
@@ -249,10 +244,10 @@ class MonthlyRevenue {
 		return 0;
 	}
 
-	public static void supplementDB(int year, int month) throws Exception {
+	public static void supplementDB(MyDB myDB) throws Exception {
 		Calendar endCal = Calendar.getInstance();
 		int eYear = endCal.get(Calendar.YEAR);
-		int eMonth = endCal.get(Calendar.MONTH) + 1;
+		int eMonth = (endCal.get(Calendar.MONTH) + 1) - 1;
 
 		File importDir = new File(Environment.MonthlyRevenuePath);
 		if (!importDir.exists()) {
@@ -260,7 +255,17 @@ class MonthlyRevenue {
 			System.exit(-1);
 		}
 
-		MyDB db = new MyDB();
+		db = myDB;
+		int yearMonth = db.getLastMonthlyRevenue();
+		int year = yearMonth / 100;
+		int month = yearMonth % 100;
+
+		String update = "UPDATE company SET 產業別 = ? WHERE StockNum = ?";
+		companyST = new MyStatement(db.conn, update);
+
+		monthST = new MyStatement(db.conn);
+		monthST.setInsertIgnoreStatement("monthly", "YearMonth", "StockNum", "當月營收", "上月營收", "去年當月營收", "上月比較增減",
+				"去年同月增減", "當月累計營收", "去年累計營收", "前期比較增減", "備註");
 
 		MonthlyRevenue revenue;
 		while (year < eYear || (year == eYear && month <= eMonth)) {
@@ -283,18 +288,48 @@ class MonthlyRevenue {
 			}
 		}
 
-		db.close();
+		companyST.close();
+		monthST.close();
 	}
 }
 
 public class ImportMonthly {
+	
+	/**
+	 * 刪除最後取得的資料 最後一天可能是取得尚未更新的資料
+	 */
+	public static void removeLatestFile(String folderPath) {
+		File dir = new File(folderPath);
+		if (!dir.exists())
+			return;
+
+		File[] files = dir.listFiles();
+		if (files.length == 0)
+			return;
+
+		Comparator<File> comparator = new Comparator<File>() {
+			@Override
+			public int compare(File f1, File f2) {
+				return ((File) f1).getName().compareTo(((File) f2).getName());
+			}
+		};
+
+		Arrays.sort(files, comparator);
+		File lastfile = files[files.length - 1];
+		Log.info("Delete file " + lastfile.getName());
+		lastfile.delete();
+		File lastfile2 = files[files.length - 2];
+		Log.info("Delete file " + lastfile2.getName());
+		lastfile.delete();
+		lastfile2.delete();
+	}
 
 	public static void main(String[] args) {
 		try {
 			MyDB db = new MyDB();
-			int yearMonth = db.getLastMonthlyRevenue();
+			removeLatestFile(Environment.MonthlyRevenuePath);
+			MonthlyRevenue.supplementDB(db);
 			db.close();
-			MonthlyRevenue.supplementDB(yearMonth / 100, yearMonth % 100);
 
 		} catch (Exception e) {
 			e.printStackTrace();
