@@ -94,6 +94,31 @@ class DailyTaiEx implements Runnable {
 			file = new File(folderPath + filename);
 		}
 	}
+	
+	/**
+	 * 刪除最後取得的資料 最後一天可能是取得尚未更新的資料
+	 */
+	public static void removeLatestFile() {
+		File dir = new File(folderPath);
+		if (!dir.exists())
+			return;
+
+		File[] files = dir.listFiles();
+		if (files.length == 0)
+			return;
+
+		Comparator<File> comparator = new Comparator<File>() {
+			@Override
+			public int compare(File f1, File f2) {
+				return ((File) f1).getName().compareTo(((File) f2).getName());
+			}
+		};
+
+		Arrays.sort(files, comparator);
+		File lastfile = files[files.length - 1];
+		Log.info("Delete file " + lastfile.getName());
+		lastfile.delete();
+	}
 
 	boolean parse() throws Exception {
 		if (!file.exists()) {
@@ -243,6 +268,31 @@ class DailyTradeStocks implements Runnable {
 			download();
 			file = new File(folderPath + filename);
 		}
+	}
+	
+	/**
+	 * 刪除最後取得的資料 最後一天可能是取得尚未更新的資料
+	 */
+	public static void removeLatestFile() {
+		File dir = new File(folderPath);
+		if (!dir.exists())
+			return;
+
+		File[] files = dir.listFiles();
+		if (files.length == 0)
+			return;
+
+		Comparator<File> comparator = new Comparator<File>() {
+			@Override
+			public int compare(File f1, File f2) {
+				return ((File) f1).getName().compareTo(((File) f2).getName());
+			}
+		};
+
+		Arrays.sort(files, comparator);
+		File lastfile = files[files.length - 1];
+		Log.info("Delete file " + lastfile.getName());
+		lastfile.delete();
 	}
 
 	boolean parse() throws Exception {
@@ -424,10 +474,12 @@ class DailyTradeStocks implements Runnable {
 
 		taiEx = new MyStatement(db.conn);
 		taiEx.setInsertOnDuplicateStatement("daily_summary", "Date", "成交金額", "成交股數", "成交筆數");
+		taiEx.setBatchSize(1000);
 
 		dailyST = new MyStatement(db.conn);
 		dailyST.setInsertIgnoreStatement("daily", "Date", "StockNum", "成交股數", "成交筆數", "成交金額", "開盤價", "最高價", "最低價",
 		        "收盤價", "本益比");
+		dailyST.setBatchSize(1000);
 
 		Calendar startCal = db.getLastDailyTradeDate();
 		Calendar endCal = Calendar.getInstance();
@@ -467,40 +519,15 @@ public class ImportDaily {
 		return false;
 	}
 
-	/**
-	 * 刪除最後取得的資料 最後一天可能是取得尚未更新的資料
-	 */
-	public static void removeLatestFile(String folderPath) {
-		File dir = new File(folderPath);
-		if (!dir.exists())
-			return;
-
-		File[] files = dir.listFiles();
-		if (files.length == 0)
-			return;
-
-		Comparator<File> comparator = new Comparator<File>() {
-			@Override
-			public int compare(File f1, File f2) {
-				return ((File) f1).getName().compareTo(((File) f2).getName());
-			}
-		};
-
-		Arrays.sort(files, comparator);
-		File lastfile = files[files.length - 1];
-		Log.info("Delete file " + lastfile.getName());
-		lastfile.delete();
-	}
-
 	public static void main(String[] args) {
 		MyDB db = null;
 
 		try {
 			db = new MyDB();
-			removeLatestFile(Environment.DailyTradeStocksPath);
+			DailyTradeStocks.removeLatestFile();
 			DailyTradeStocks.supplementDB(db);
 
-			removeLatestFile(Environment.DailyTaiExPath);
+			DailyTaiEx.removeLatestFile();
 			DailyTaiEx.supplementDB(db);
 
 			db.close();

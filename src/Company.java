@@ -15,13 +15,13 @@ public class Company {
 	MonthlyData[] mData;
 	QuarterlyData[] qData;
 	AnnualData[] yData;
-	
+
 	MyDB db;
 
 	public Company(MyDB db) {
 		this.db = db;
 	}
-	
+
 	public boolean isValidQuarter(int year, int quarter) {
 		int lastYear = lastUpdateInt / 10000;
 		int lastMonth = lastUpdateInt / 100 % 100;
@@ -44,7 +44,7 @@ public class Company {
 
 		return false;
 	}
-	
+
 	public boolean isValidYear(int year) {
 		int lastYear = lastUpdateInt / 10000;
 		int lastMonth = (lastUpdateInt / 100) % 100;
@@ -56,7 +56,14 @@ public class Company {
 
 		return false;
 	}
-	
+
+	public boolean isFinancial() {
+		if (category.equals("金融保險業") || category.equals("金融保險"))
+			return true;
+		else
+			return false;
+	}
+
 	void fetchAllBasicData() throws Exception {
 		latestPrice = getlatestPrice();
 		fetchAllMonth();
@@ -78,8 +85,9 @@ public class Company {
 
 	float getlatestPrice() throws Exception {
 		Statement stm = db.conn.createStatement();
-		String lastValid = "(select Date from daily WHERE StockNum = " + stockNum + " AND 收盤價 IS NOT NULL ORDER BY Date DESC LIMIT 1)";
-		String query = "SELECT 收盤價 FROM daily WHERE Date = " + lastValid +" AND StockNum = " + stockNum;
+		String lastValid = "(select Date from daily WHERE StockNum = " + stockNum
+		        + " AND 收盤價 IS NOT NULL ORDER BY Date DESC LIMIT 1)";
+		String query = "SELECT 收盤價 FROM daily WHERE Date = " + lastValid + " AND StockNum = " + stockNum;
 		ResultSet rs = stm.executeQuery(query);
 
 		if (!rs.first()) {
@@ -88,36 +96,36 @@ public class Company {
 
 		float price = rs.getFloat("收盤價");
 		stm.close();
-	 
+
 		return price;
 	}
-	
+
 	DailyData getDData(Date date) throws Exception {
 		return DailyData.queryData(db, date, stockNum);
 	}
-	
+
 	MonthlyData getMData(int year, int month) throws SQLException {
 		return MonthlyData.getData(mData, year, month);
 	}
-	
+
 	QuarterlyData getQData(int year, int quarter) throws SQLException {
 		return QuarterlyData.getData(qData, year, quarter);
 	}
-	
+
 	AnnualData getYData(int year) throws SQLException {
 		return AnnualData.getData(yData, year);
 	}
-	
+
 	static public Company[] getAllCompanies(MyDB db) throws Exception {
 		return getAllCompanies(db, false);
 	}
-	
+
 	static public Company[] getAllValidCompanies(MyDB db) throws Exception {
 		return getAllCompanies(db, true);
 	}
 
 	static private Company[] getAllCompanies(MyDB db, boolean valid) throws Exception {
-		
+
 		Statement compST = db.conn.createStatement();
 		String query;
 		if (valid)

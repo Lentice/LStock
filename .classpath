@@ -3,6 +3,11 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="lib" path="External/mysql-connector-java-5.1.36-bin.jar"/>
 	<classpathentry kind="lib" path="External/opencsv-3.5.jar"/>
+	<classpathentry kind="lib" path="External/commons-math3-3.5.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/External/commons-math3-3.5-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="Strategy"/>
 	<classpathentry excluding="Data/|Data/季_現金流量表/|Data/季_綜合損益表/|Data/季_資產負債表/|Data/年_除權息/|Data/日_加權指數月表/|Data/月_營收總表/|Data/每日收盤行情/|External/|src/|Strategy/" kind="src" path=""/>
@@ -11,6 +16,5 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/External/jsoup-1.8.3-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="External/jsoup-1.8.3-javadoc.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -114,6 +114,35 @@ class MonthlyRevenue {
 			file = new File(folderPath + filename);
 		}
 	}
+	
+	/**
+	 * 刪除最後取得的資料，因最後資料可能是取得尚未更新的資料，所以需要重新抓取一次
+	 */
+	public static void removeLatestFile() {
+		File dir = new File(folderPath);
+		if (!dir.exists())
+			return;
+
+		File[] files = dir.listFiles();
+		if (files.length == 0)
+			return;
+
+		Comparator<File> comparator = new Comparator<File>() {
+			@Override
+			public int compare(File f1, File f2) {
+				return ((File) f1).getName().compareTo(((File) f2).getName());
+			}
+		};
+
+		Arrays.sort(files, comparator);
+		File lastfile = files[files.length - 1];
+		Log.info("Delete file " + lastfile.getName());
+		lastfile.delete();
+		File lastfile2 = files[files.length - 2];
+		Log.info("Delete file " + lastfile2.getName());
+		lastfile.delete();
+		lastfile2.delete();
+	}
 
 	boolean parse() throws IOException {
 		if (!file.exists()) {
@@ -266,6 +295,7 @@ class MonthlyRevenue {
 		monthST = new MyStatement(db.conn);
 		monthST.setInsertIgnoreStatement("monthly", "YearMonth", "StockNum", "當月營收", "上月營收", "去年當月營收", "上月比較增減",
 				"去年同月增減", "當月累計營收", "去年累計營收", "前期比較增減", "備註");
+		monthST.setBatchSize(1000);
 
 		MonthlyRevenue revenue;
 		while (year < eYear || (year == eYear && month <= eMonth)) {
@@ -295,39 +325,10 @@ class MonthlyRevenue {
 
 public class ImportMonthly {
 	
-	/**
-	 * 刪除最後取得的資料 最後一天可能是取得尚未更新的資料
-	 */
-	public static void removeLatestFile(String folderPath) {
-		File dir = new File(folderPath);
-		if (!dir.exists())
-			return;
-
-		File[] files = dir.listFiles();
-		if (files.length == 0)
-			return;
-
-		Comparator<File> comparator = new Comparator<File>() {
-			@Override
-			public int compare(File f1, File f2) {
-				return ((File) f1).getName().compareTo(((File) f2).getName());
-			}
-		};
-
-		Arrays.sort(files, comparator);
-		File lastfile = files[files.length - 1];
-		Log.info("Delete file " + lastfile.getName());
-		lastfile.delete();
-		File lastfile2 = files[files.length - 2];
-		Log.info("Delete file " + lastfile2.getName());
-		lastfile.delete();
-		lastfile2.delete();
-	}
-
 	public static void main(String[] args) {
 		try {
 			MyDB db = new MyDB();
-			removeLatestFile(Environment.MonthlyRevenuePath);
+			MonthlyRevenue.removeLatestFile();
 			MonthlyRevenue.supplementDB(db);
 			db.close();
 

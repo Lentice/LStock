@@ -181,21 +181,24 @@ public class MyDB {
 }
 
 class MyStatement {
-	static final int BATCH_SIZE = 500;
+	int batchSize = 1000;
 
 	PreparedStatement stm;
-	int batchCount;
+	int batchCount = 0;
 	Connection conn;
 	int index = 1;
 
 	MyStatement(Connection conn) throws SQLException {
-		batchCount = 0;
 		this.conn = conn;
 	}
 
 	MyStatement(Connection conn, String stmString) throws SQLException {
+		this.conn = conn;
 		stm = conn.prepareStatement(stmString);
-		batchCount = 0;
+	}
+	
+	public void setBatchSize(int size) {
+		batchSize = size;
 	}
 
 	public void setInsertIgnoreStatement(String table, String... columnNames) throws SQLException {
@@ -250,9 +253,9 @@ class MyStatement {
 
 	public void addBatch() throws SQLException {
 		stm.addBatch();
-		if (++batchCount % BATCH_SIZE == 0) {
+		if (++batchCount % batchSize == 0) {
 			stm.executeBatch();
-			//conn.commit();
+			conn.commit();
 		}
 		
 		index = 1;
@@ -261,12 +264,13 @@ class MyStatement {
 	public void close() throws SQLException {
 		stm.executeBatch();
 		stm.close();
+		conn.commit();
 	}
 
 	public int[] executeBatch() throws SQLException {
 		return stm.executeBatch();
 	}
-
+	
 	public void setBigInt(int index, long data) throws SQLException {
 		stm.setLong(index, data);
 	}
