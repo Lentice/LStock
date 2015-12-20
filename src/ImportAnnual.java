@@ -598,10 +598,10 @@ public class ImportAnnual implements Runnable {
 			stm.setObject(income.業外收支()); // 業外收支
 			stm.setObject(income.parseLong("繼續營業單位稅前淨利（淨損）", "稅前淨利（淨損）", "繼續營業單位稅前損益", "繼續營業單位稅前純益（純損）")); // 稅前淨利
 			stm.setObject(income.parseLong("繼續營業單位本期淨利（淨損）", "繼續營業單位本期稅後淨利（淨損）", "繼續營業單位本期純益（純損）")); // 稅後淨利
-			stm.setObject(income.parseLong("本期綜合損益總額", "本期綜合損益總額（稅後）")); // 綜合損益
+			stm.setObject(income.綜合損益()); // 綜合損益
 			stm.setObject(income.parseLong("母公司業主（淨利／損）", "母公司業主（淨利／淨損）")); // 母公司業主淨利
 			stm.setObject(income.parseLong("母公司業主（綜合損益）")); // 母公司業主綜合損益
-			stm.setObject(income.parseFloat("基本每股盈餘")); // EPS
+			stm.setObject(income.eps()); // EPS
 
 			stm.setObject(balance.parseLong("流動資產合計")); // 流動資產
 			stm.setObject(balance.parseLong("現金及約當現金")); // 現金及約當現金
@@ -612,14 +612,14 @@ public class ImportAnnual implements Runnable {
 			stm.setObject(balance.parseLong("持有至到期日金融資產－非流動淨額", "持有至到期日金融資產－非流動")); // 持有至到期日金融資產
 			stm.setObject(balance.parseLong("以成本衡量之金融資產－非流動淨額", "以成本衡量之金融資產－非流動")); // 以成本衡量之金融資產
 			stm.setObject(balance.parseLong("採用權益法之投資淨額", "採用權益法之投資")); // 採用權益法之投資淨額
-			stm.setObject(balance.parseLong("不動產、廠房及設備", "不動產及設備－淨額", "不動產及設備合計")); // 固定資產
+			stm.setObject(balance.parseLong("不動產、廠房及設備", "不動產及設備－淨額", "不動產及設備合計", "不動產、廠房及設備淨額")); // 固定資產
 			stm.setObject(balance.parseLong("資產總額", "資產總計")); // 總資產
 
 			stm.setObject(balance.parseLong("流動負債合計")); // 流動負債
-			stm.setObject(balance.parseLong("非流動負債合計")); // 非流動負債
+			stm.setObject(balance.parseLong("非流動負債合計", "流動負債總額")); // 非流動負債
 			stm.setObject(balance.parseLong("負債總額", "負債總計")); // 總負債
 			stm.setObject(balance.parseLong("保留盈餘合計")); // 保留盈餘
-			stm.setObject(balance.parseLong("股本合計", "股本")); // 股本
+			stm.setObject(balance.股本()); // 股本
 
 			stm.setObject(cashflow.parseLong("利息費用")); // 利息費用
 			stm.setObject(cashflow.parseLong("營業活動之淨現金流入（流出）")); // 營業現金流
@@ -656,10 +656,10 @@ public class ImportAnnual implements Runnable {
 			stm.setObject(income.毛利()); // 毛利
 			stm.setObject(income.營業利益()); // 營業利益
 			stm.setObject(income.業外收支()); // 業外收支
-			stm.setObject(income.parseLong("繼續營業部門稅前淨利(淨損)", "繼續營業單位稅前淨利(淨損)", "繼續營業單位稅前淨益(淨損)")); // 稅前淨利
-			stm.setObject(income.parseLong("繼續營業部門淨利(淨損)", "繼續營業單位淨利(淨損)", "合併總損益")); // 稅後淨利
-			stm.setObject(income.parseLong("本期淨利(淨損)", "合併淨損益", "合併總損益")); // 綜合損益
-			stm.setObject(income.parseFloat("普通股每股盈餘", "基本每股盈餘")); // EPS
+			stm.setObject(income.parseLong("繼續營業部門稅前淨利(淨損)", "繼續營業部門稅前淨利（淨損）", "繼續營業部門稅前淨益(淨損)", "繼續營業單位稅前淨利(淨損)", "繼續營業單位稅前淨利（淨損）", "繼續營業單位稅前純益（純損）", "繼續營業單位稅前淨益(淨損)", "稅前純益(純損)", "稅前淨利（淨損）", "繼續營業部門稅前損益", "繼續營業單位稅前損益", "繼續營業單位稅前合併淨利（淨損）")); // 稅前淨利
+			stm.setObject(income.parseLong("繼續營業部門稅後淨利（淨損）", "繼續營業部門淨利(淨損)", "繼續營業單位淨利(淨損)", "列計非常損益及會計原則變動累積影響數前損益", "列計非常損益及會計原則變動之累積影響數前淨利（淨額）", "繼續營業單位稅後純益（純損）", "合併總損益", "稅後純益", "本期損益（淨損）")); // 稅後淨利
+			stm.setObject(income.綜合損益()); // 綜合損益
+			stm.setObject(income.eps()); // EPS
 
 			stm.setObject(balance.parseLong("流動資產")); // 流動資產
 			stm.setObject(balance.parseLong("現金及約當現金")); // 現金及約當現金
@@ -671,8 +671,8 @@ public class ImportAnnual implements Runnable {
 
 			stm.setObject(balance.parseLong("流動負債合計", "流動負債")); // 流動負債
 			stm.setObject(balance.parseLong("負債總計", "負債總額")); // 總負債
-			stm.setObject(balance.parseLong("保留盈餘合計")); // 保留盈餘
-			stm.setObject(balance.parseLong("普通股股本", "股 本", "股本")); // 股本
+			stm.setObject(balance.parseLong("保留盈餘合計", "保留盈餘")); // 保留盈餘
+			stm.setObject(balance.股本()); // 股本
 			stm.addBatch();
 		}
 	}
@@ -715,18 +715,18 @@ public class ImportAnnual implements Runnable {
 					continue;
 				}
 
-				if (company.isFinancial() && year < 2013) {
-					Log.info(company.code + " skipped: 金融保險業");
-					continue;
-				}
-
-				if (stockNum == 2905 || stockNum == 2514 || stockNum == 1409 || stockNum == 1718) {
-					Log.info(company.code + " Skipped: 表格格式與人不同");
+				if (stockNum == 5880 && year < 2013) {
+					Log.info(company.code + " Skipped: 公開資訊站查無資料");
 					continue;
 				}
 
 				if (stockNum == 2841 && year < 2006) {
 					Log.info(company.code + " Skipped: 表格內容殘缺");
+					continue;
+				}
+				
+				if (stockNum == 4144 && year < 2010) {
+					Log.info(company.code + " Skipped: 股本不正確");
 					continue;
 				}
 
