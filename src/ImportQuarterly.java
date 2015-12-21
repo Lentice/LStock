@@ -35,10 +35,7 @@ class QuarterlyData {
 	long 存貨;
 	long 預付款項;
 	long 非流動資產;
-	long 備供出售金融資產;
-	long 持有至到期日金融資產;
-	long 以成本衡量之金融資產;
-	long 採用權益法之投資淨額;
+	long 長期投資;
 	long 固定資產;
 	long 總資產;
 	long 流動負債;
@@ -57,7 +54,6 @@ class QuarterlyData {
 
 	Long 股東權益;
 	Float 每股淨值;
-	Long 長期投資;
 	Float 毛利率;
 	Float 營業利益率;
 	Float 稅前淨利率;
@@ -120,10 +116,7 @@ class QuarterlyData {
 		存貨 = rs.getObject("存貨", Long.class);
 		預付款項 = rs.getObject("預付款項", Long.class);
 		非流動資產 = rs.getObject("非流動資產", Long.class);
-		備供出售金融資產 = rs.getObject("備供出售金融資產", Long.class);
-		持有至到期日金融資產 = rs.getObject("持有至到期日金融資產", Long.class);
-		以成本衡量之金融資產 = rs.getObject("以成本衡量之金融資產", Long.class);
-		採用權益法之投資淨額 = rs.getObject("採用權益法之投資淨額", Long.class);
+		長期投資 = rs.getObject("長期投資", Long.class);
 		固定資產 = rs.getObject("固定資產", Long.class);
 		總資產 = rs.getObject("總資產", Long.class);
 		流動負債 = rs.getObject("流動負債", Long.class);
@@ -143,7 +136,6 @@ class QuarterlyData {
 		/* 以下數值若不存在 則當成null 以方便判斷是否已經存在 */
 		股東權益 = (Long) rs.getObject("股東權益");
 		每股淨值 = (Float) rs.getObject("每股淨值");
-		長期投資 = (Long) rs.getObject("長期投資");
 		毛利率 = (Float) rs.getObject("毛利率");
 		營業利益率 = (Float) rs.getObject("營業利益率");
 		稅前淨利率 = (Float) rs.getObject("稅前淨利率");
@@ -217,7 +209,7 @@ class QuarterlyData {
 	}
 
 	static QuarterlyData getShiftData(QuarterlyData[] allQuarter, int currentYearQuarter, int shiftCount)
-			throws SQLException {
+	        throws SQLException {
 		int year = currentYearQuarter / 100;
 		int quarter = currentYearQuarter % 100;
 
@@ -413,9 +405,6 @@ class QuarterlyFixAndSupplement implements Runnable {
 			if (data.股本 != 0)
 				data.每股淨值 = (float) data.股東權益 / (data.股本 / 10); // 每股10元
 
-			if (data.長期投資 == null || data.長期投資 == 0)
-				data.長期投資 = data.備供出售金融資產 + data.持有至到期日金融資產 + data.以成本衡量之金融資產 + data.採用權益法之投資淨額;
-
 			if (data.營收 != 0) {
 				data.毛利率 = (float) data.毛利 / data.營收;
 				data.營業利益率 = (float) data.營業利益 / data.營收;
@@ -480,9 +469,9 @@ class QuarterlyFixAndSupplement implements Runnable {
 			}
 
 			if (past7Q != null && past6Q != null && past5Q != null && past4Q != null && past3Q != null && past2Q != null
-					&& past1Q != null && past7Q.第四季累計需修正 == false && past6Q.第四季累計需修正 == false
-					&& past5Q.第四季累計需修正 == false && past4Q.第四季累計需修正 == false && past3Q.第四季累計需修正 == false
-					&& past2Q.第四季累計需修正 == false && past1Q.第四季累計需修正 == false) {
+			        && past1Q != null && past7Q.第四季累計需修正 == false && past6Q.第四季累計需修正 == false
+			        && past5Q.第四季累計需修正 == false && past4Q.第四季累計需修正 == false && past3Q.第四季累計需修正 == false
+			        && past2Q.第四季累計需修正 == false && past1Q.第四季累計需修正 == false) {
 				long past4quarter;
 				long lastYearpast4quarter;
 				float fpast4quarter;
@@ -538,7 +527,6 @@ class QuarterlyFixAndSupplement implements Runnable {
 			stm.setObject(data.自由現金流);
 			stm.setObject(data.股東權益);
 			stm.setObject(data.每股淨值);
-			stm.setObject(data.長期投資);
 			stm.setObject(data.毛利率);
 			stm.setObject(data.營業利益率);
 			stm.setObject(data.稅前淨利率);
@@ -589,19 +577,19 @@ class QuarterlyFixAndSupplement implements Runnable {
 
 		cashflowStm = new MyStatement(db.conn);
 		cashflowStm.setUpdateStatement("quarterly", "YearQuarter=? AND StockNum=?", "營業現金流", "投資現金流", "融資現金流",
-				"現金流累計需更正");
+		        "現金流累計需更正");
 
 		quarter4Stm = new MyStatement(db.conn);
 		quarter4Stm.setUpdateStatement("quarterly", "YearQuarter=? AND StockNum=?", "營收", "成本", "毛利", "營業利益", "業外收支",
-				"稅前淨利", "稅後淨利", "綜合損益", "母公司業主淨利", "母公司業主綜合損益", "EPS", "營業現金流", "投資現金流", "融資現金流", "第四季累計需修正", "季報有缺少");
+		        "稅前淨利", "稅後淨利", "綜合損益", "母公司業主淨利", "母公司業主綜合損益", "EPS", "營業現金流", "投資現金流", "融資現金流", "第四季累計需修正", "季報有缺少");
 		quarter4Stm.setBatchSize(250);
 
 		supplementStm = new MyStatement(db.conn);
-		supplementStm.setUpdateStatement("quarterly", "YearQuarter=? AND StockNum=?", "自由現金流", "股東權益", "每股淨值", "長期投資",
-				"毛利率", "營業利益率", "稅前淨利率", "稅後淨利率", "總資產週轉率", "權益乘數", "業外收支比重", "ROA", "ROE", "存貨周轉率", "負債比", "流動比",
-				"速動比", "利息保障倍數", "營業現金對流動負債比", "營業現金對負債比", "營業現金流對淨利比", "自由現金流對淨利比", "單季營收年增率", "近4季營收年增率", "單季毛利年增率",
-				"近4季毛利年增率", "單季營業利益年增率", "近4季營業利益年增率", "單季稅後淨利年增率", "近4季稅後淨利年增率", "單季EPS年增率", "近4季EPS年增率", "單季總資產年增率",
-				"近4季總資產年增率", "單季淨值年增率", "近4季淨值年增率", "單季固定資產年增率", "近4季固定資產年增率");
+		supplementStm.setUpdateStatement("quarterly", "YearQuarter=? AND StockNum=?", "自由現金流", "股東權益", "每股淨值", "毛利率",
+		        "營業利益率", "稅前淨利率", "稅後淨利率", "總資產週轉率", "權益乘數", "業外收支比重", "ROA", "ROE", "存貨周轉率", "負債比", "流動比", "速動比",
+		        "利息保障倍數", "營業現金對流動負債比", "營業現金對負債比", "營業現金流對淨利比", "自由現金流對淨利比", "單季營收年增率", "近4季營收年增率", "單季毛利年增率",
+		        "近4季毛利年增率", "單季營業利益年增率", "近4季營業利益年增率", "單季稅後淨利年增率", "近4季稅後淨利年增率", "單季EPS年增率", "近4季EPS年增率", "單季總資產年增率",
+		        "近4季總資產年增率", "單季淨值年增率", "近4季淨值年增率", "單季固定資產年增率", "近4季固定資產年增率");
 		supplementStm.setBatchSize(250);
 
 		ExecutorService service = Executors.newFixedThreadPool(10);
@@ -849,8 +837,8 @@ class QuarterlyBasicTable {
 			postData = "step=1&firstin=1&off=1&keyword4=&code1=&TYPEK2=&checkbtn=&queryName=co_id&TYPEK=all&isnew=false&";
 
 		postData = postData + String.format("co_id=%s&year=%s&season=0%s", URLEncoder.encode(company.code, "UTF-8"),
-				URLEncoder.encode(String.valueOf(year - 1911), "UTF-8"),
-				URLEncoder.encode(String.valueOf(quarter), "UTF-8"));
+		        URLEncoder.encode(String.valueOf(year - 1911), "UTF-8"),
+		        URLEncoder.encode(String.valueOf(quarter), "UTF-8"));
 
 		String url = "http://mops.twse.com.tw" + formAction + "?" + postData;
 
@@ -928,15 +916,15 @@ class QuarterlyBasicTable {
 		} else {
 			if (company.isFinancial()) {
 				if (company.stockNum == 2854 || company.stockNum == 2855 || company.stockNum == 2856
-						|| company.stockNum == 6004 || company.stockNum == 6005 || company.stockNum == 6012)
+				        || company.stockNum == 6004 || company.stockNum == 6005 || company.stockNum == 6012)
 					營收 = parseLong("營收總計");
 				else if (company.stockNum == 2820 && year == 2004)
 					營收 = parseLong("收益");
 				else if (company.stockNum == 2820 && year == 2005)
 					營收 = parseLong("收益");
 				else if ((year >= 2006 && year <= 2010) && (company.stockNum == 2816 || company.stockNum == 2823
-						|| company.stockNum == 2832 || company.stockNum == 2833 || company.stockNum == 2850
-						|| company.stockNum == 2851 || company.stockNum == 2852 || company.stockNum == 2867)) {
+				        || company.stockNum == 2832 || company.stockNum == 2833 || company.stockNum == 2850
+				        || company.stockNum == 2851 || company.stockNum == 2852 || company.stockNum == 2867)) {
 					Long va;
 					營收 = Long.valueOf(0);
 					if ((va = parseLong("保費收入")) != null)
@@ -996,15 +984,15 @@ class QuarterlyBasicTable {
 		} else {
 			if (company.isFinancial()) {
 				if (company.stockNum == 2854 || company.stockNum == 2855 || company.stockNum == 2856
-						|| company.stockNum == 6004 || company.stockNum == 6005 || company.stockNum == 6012)
+				        || company.stockNum == 6004 || company.stockNum == 6005 || company.stockNum == 6012)
 					成本 = parseLong("支出總計");
 				else if (company.stockNum == 2820 && year == 2004)
 					成本 = parseLong("費損");
 				else if (company.stockNum == 2820 && year == 2005)
 					成本 = parseLong("費損");
 				else if ((year >= 2006 && year <= 2010) && (company.stockNum == 2816 || company.stockNum == 2823
-						|| company.stockNum == 2832 || company.stockNum == 2833 || company.stockNum == 2850
-						|| company.stockNum == 2851 || company.stockNum == 2852 || company.stockNum == 2867)) {
+				        || company.stockNum == 2832 || company.stockNum == 2833 || company.stockNum == 2850
+				        || company.stockNum == 2851 || company.stockNum == 2852 || company.stockNum == 2867)) {
 					Long va;
 					成本 = Long.valueOf(0);
 					if ((va = parseLong("再保費支出")) != null)
@@ -1063,16 +1051,14 @@ class QuarterlyBasicTable {
 		if (useIFRSs) {
 			毛利 = parseLong("營業毛利（毛損）淨額", "營業毛利（毛損）", "營業毛利(毛損)");
 			if (毛利 == null) {
-				if (company.isFinancial())
-					if (營收 != null && 成本 != null)
-						毛利 = 營收 - 成本;
+				if (營收 != null && 成本 != null)
+					毛利 = 營收 - 成本;
 			}
 		} else {
 			毛利 = parseLong("營業毛利(毛損)");
 			if (毛利 == null) {
-				if (company.isFinancial())
-					if (營收 != null && 成本 != null)
-						毛利 = 營收 - 成本;
+				if (營收 != null && 成本 != null)
+					毛利 = 營收 - 成本;
 			}
 		}
 
@@ -1084,16 +1070,14 @@ class QuarterlyBasicTable {
 		if (useIFRSs) {
 			營業利益 = parseLong("營業利益（損失）", "營業利益");
 			if (營業利益 == null) {
-				if (company.isFinancial())
-					if (營收 != null && 成本 != null)
-						營業利益 = 營收 - 成本;
+				if (營收 != null && 成本 != null)
+					營業利益 = 營收 - 成本;
 			}
 		} else {
 			營業利益 = parseLong("營業淨利(淨損)", " 營業利益（損失）");
 			if (營業利益 == null) {
-				if (company.isFinancial())
-					if (營收 != null && 成本 != null)
-						營業利益 = 營收 - 成本;
+				if (營收 != null && 成本 != null)
+					營業利益 = 營收 - 成本;
 			}
 		}
 
@@ -1143,9 +1127,7 @@ class QuarterlyBasicTable {
 		if (useIFRSs) {
 			eps = parseFloat("基本每股盈餘");
 		} else {
-			if (company.stockNum == 2383 && year == 2006 && quarter == 2) {
-				eps = parseFloat("稀釋每股盈餘");// EPS名稱亂填
-			} else if (company.stockNum == 2801 && year == 2004 && quarter == 3) {
+			if (company.stockNum == 2801 && year == 2004 && quarter == 3) {
 				eps = parseFloat("繼續營業部門淨利（淨損）");// EPS名稱亂填
 			} else if (company.stockNum == 2801 && year == 2005 && quarter == 3) {
 				eps = parseFloat("繼續營業部門淨利（淨損）");// EPS名稱亂填
@@ -1159,20 +1141,28 @@ class QuarterlyBasicTable {
 				eps = parseFloat("繼續營業部門淨利（淨損）");// EPS名稱亂填
 			} else if (company.stockNum == 2836 && year == 2005 && quarter == 1) {
 				eps = parseFloat("繼續營業部門淨利（淨損）");// EPS名稱亂填
-			} else if (company.stockNum == 2849 && year == 2008 && quarter == 1) {
-				eps = Float.valueOf((float) -0.28);// EPS不存在
 			} else if (company.stockNum == 2854 && year == 2005 && quarter == 1) {
 				eps = parseFloat("每股盈餘");// EPS名稱亂填
+			} else if (company.stockNum == 6166 && year == 2004 && quarter == 2) {
+				eps = parseFloat("普通股每股盈餘");
+			} else if (company.stockNum == 2348 && year == 2004 && quarter == 1) {
+				eps = parseFloat("簡單每股盈餘");// EPS內容錯誤
+			} else if (company.stockNum == 2383 && year == 2006 && quarter == 2) {
+				eps = parseFloat("稀釋每股盈餘");// EPS名稱亂填
 			} else if (company.stockNum == 6289 && year == 2012 && quarter == 2) {
 				eps = parseFloat("稀釋每股盈餘");// EPS內容錯誤
 			} else if (company.stockNum == 1474 && year == 2011 && quarter == 2) {
 				eps = parseFloat("稀釋每股盈餘");// EPS內容錯誤
-			} else if (company.stockNum == 2348 && year == 2004 && quarter == 1) {
-				eps = parseFloat("簡單每股盈餘");// EPS內容錯誤
+			} else if (company.stockNum == 3033 && year == 2008 && quarter == 1) {
+				eps = parseFloat("稀釋每股盈餘");// EPS內容錯誤
+			} else if (company.stockNum == 2102 && year == 2004 && quarter == 1) {
+				eps = parseFloat("完全稀釋每股盈餘");// EPS名稱亂填
+			} else if (company.stockNum == 2417 && year == 2004 && quarter == 1) {
+				eps = parseFloat("完全稀釋每股盈餘");// EPS名稱亂填
 			} else if (company.stockNum == 2359 && year == 2010 && quarter == 3) {
 				eps = Float.valueOf((float) 0.66);// EPS不存在
-			} else if (company.stockNum == 4141 && year == 2009 && quarter == 4) {
-				eps = null;// EPS不存在
+			} else if (company.stockNum == 2849 && year == 2008 && quarter == 1) {
+				eps = Float.valueOf((float) -0.28);// EPS不存在
 			} else if (company.stockNum == 8422 && year == 2009 && quarter == 4) {
 				eps = Float.valueOf((float) 1.424280462184874);// EPS不存在
 			} else if (company.stockNum == 2801 && year == 2004 && quarter == 1) {
@@ -1195,22 +1185,22 @@ class QuarterlyBasicTable {
 				eps = Float.valueOf((float) 0.27);// EPS不存在
 			} else if (company.stockNum == 2849 && year == 2004 && quarter == 1) {
 				eps = Float.valueOf((float) 0.10);// EPS不存在
-			} else if (company.stockNum == 6166 && year == 2004 && quarter == 2) {
-				eps = parseFloat("普通股每股盈餘", "基本每股盈餘", "每股盈餘", "完全稀釋每股盈餘", "稀釋每股盈餘");
 			} else if (year == 2004 && company.isFinancial()) {
 				eps = parseFloat("簡單每股盈餘", "普通股每股盈餘", "基本每股盈餘", "每股盈餘", "完全稀釋每股盈餘", "稀釋每股盈餘");
 				if (eps == null || eps == 0 || Math.abs(eps) > 1000)
 					eps = parseFloat("本期淨利（淨損）"); // EPS名稱亂填
-				if (eps == null ||Math.abs(eps) > 1000)
+				if (eps == null || Math.abs(eps) > 1000)
 					eps = parseFloat("繼續營業部門淨利（淨損）"); // EPS名稱亂填
 			} else if (year == 2005 && company.isFinancial()) {
 				eps = parseFloat("簡單每股盈餘", "普通股每股盈餘", "基本每股盈餘", "每股盈餘", "完全稀釋每股盈餘", "稀釋每股盈餘");
 				if (eps == null || eps == 0 || Math.abs(eps) > 1000)
 					eps = parseFloat("本期淨利（淨損）"); // EPS名稱亂填
-				if (eps == null ||Math.abs(eps) > 1000)
+				if (eps == null || Math.abs(eps) > 1000)
 					eps = parseFloat("繼續營業部門淨利（淨損）"); // EPS名稱亂填
 			} else {
-				eps = parseFloat("簡單每股盈餘", "稀釋每股盈餘", "普通股每股盈餘", "基本每股盈餘", "每股盈餘", "完全稀釋每股盈餘");
+				eps = parseFloat("簡單每股盈餘", "普通股每股盈餘", "基本每股盈餘", "每股盈餘");
+				if (eps == null || Math.abs(eps) > 1000)
+					eps = parseFloat("稀釋每股盈餘", "完全稀釋每股盈餘");
 			}
 		}
 
@@ -1218,8 +1208,6 @@ class QuarterlyBasicTable {
 	}
 
 	Long 股本() {
-		if (company.stockNum == 2801 && year == 2004)
-			Log.info("");
 		Long 股本 = null;
 		if (useIFRSs) {
 			Long va;
@@ -1245,7 +1233,7 @@ class QuarterlyBasicTable {
 				if ((va = parseLong("特別股股本", "特別股")) != null)
 					股本 += va;
 			}
-			
+
 			if (股本 == 0) {
 				if (company.stockNum == 5854 && year == 2009)
 					股本 = Long.valueOf(54855000);
@@ -1255,6 +1243,65 @@ class QuarterlyBasicTable {
 		}
 
 		return 股本;
+	}
+
+	Long 總負債() {
+		Long 總負債 = null;
+		if (useIFRSs) {
+			總負債 = parseLong("負債總額", "負債總計", "負債合計");
+		} else {
+			總負債 = parseLong("負債總計", "負債總額", "負債合計", "負債");
+			if (總負債 == null || 總負債 == 0) {
+				Long va;
+				總負債 = Long.valueOf(0);
+				if ((va = parseLong("流動負債合計", "流動負債")) != null)
+					總負債 += va;
+				if ((va = parseLong("長期附息負債", "長期負債")) != null)
+					總負債 += va;
+				if ((va = parseLong("營業及負債準備")) != null)
+					總負債 += va;
+				if ((va = parseLong("其他負債")) != null)
+					總負債 += va;
+				if ((va = parseLong("央行及銀行同業融資")) != null)
+					總負債 += va;
+			}
+		}
+
+		return 總負債;
+	}
+
+	Long 長期投資() {
+		Long 長期投資 = null;
+		if (useIFRSs) {
+			Long va;
+			長期投資 = Long.valueOf(0);
+			if ((va = parseLong("備供出售金融資產－非流動淨額", "備供出售金融資產－非流動")) != null)
+				長期投資 += va;
+			if ((va = parseLong("持有至到期日金融資產－非流動淨額", "持有至到期日金融資產－非流動")) != null)
+				長期投資 += va;
+			if ((va = parseLong("以成本衡量之金融資產－非流動淨額", "以成本衡量之金融資產－非流動")) != null)
+				長期投資 += va;
+			if ((va = parseLong("採用權益法之投資淨額", "採用權益法之投資", "採權益法之長期股權投資")) != null)
+				長期投資 += va;
+			if (長期投資 == 0) {
+				if ((va = parseLong("投資合計")) != null)
+					長期投資 += va;
+			}
+
+		} else {
+			長期投資 = parseLong("基金及投資", "基金及長期投資", "基金與投資");
+			if (長期投資 == null || 長期投資 == 0) {
+				Long va;
+				長期投資 = Long.valueOf(0);
+				if ((va = parseLong("長期股權投資")) != null)
+					長期投資 += va;
+				if ((va = parseLong("其他長期投資")) != null)
+					長期投資 += va;
+
+			}
+		}
+
+		return 長期投資;
 	}
 }
 
@@ -1315,11 +1362,11 @@ public class ImportQuarterly implements Runnable {
 
 	private void importBasicData(MyStatement stm) throws Exception {
 		QuarterlyBasicTable income = new QuarterlyBasicTable(year, quarter, company,
-				QuarterlyBasicTable.INCOME_STATEMENT);
+		        QuarterlyBasicTable.INCOME_STATEMENT);
 		QuarterlyBasicTable balance = new QuarterlyBasicTable(year, quarter, company,
-				QuarterlyBasicTable.BALANCE_SHEET);
+		        QuarterlyBasicTable.BALANCE_SHEET);
 		QuarterlyBasicTable cashflow = new QuarterlyBasicTable(year, quarter, company,
-				QuarterlyBasicTable.CASHFLOW_STATEMENT);
+		        QuarterlyBasicTable.CASHFLOW_STATEMENT);
 
 		boolean incomeResult = income.parse();
 		boolean balanceResult = balance.parse();
@@ -1344,22 +1391,19 @@ public class ImportQuarterly implements Runnable {
 			stm.setObject(income.parseLong("母公司業主（綜合損益）")); // 母公司業主綜合損益
 			stm.setObject(income.eps()); // EPS
 
-			stm.setObject(balance.parseLong("流動資產合計")); // 流動資產
+			stm.setObject(balance.parseLong("流動資產合計", "流動資產總額", "流動資產總計")); // 流動資產
 			stm.setObject(balance.parseLong("現金及約當現金")); // 現金及約當現金
 			stm.setObject(balance.parseLong("存貨")); // 存貨
 			stm.setObject(balance.parseLong("預付款項")); // 預付款項
-			stm.setObject(balance.parseLong("非流動資產合計")); // 非流動資產
-			stm.setObject(balance.parseLong("備供出售金融資產－非流動淨額", "備供出售金融資產－非流動")); // 備供出售金融資產
-			stm.setObject(balance.parseLong("持有至到期日金融資產－非流動淨額", "持有至到期日金融資產－非流動")); // 持有至到期日金融資產
-			stm.setObject(balance.parseLong("以成本衡量之金融資產－非流動淨額", "以成本衡量之金融資產－非流動")); // 以成本衡量之金融資產
-			stm.setObject(balance.parseLong("採用權益法之投資淨額", "採用權益法之投資")); // 採用權益法之投資淨額
+			stm.setObject(balance.parseLong("非流動資產合計", "非流動資產總額", "非流動資產總計")); // 非流動資產
+			stm.setObject(balance.長期投資()); // 長期投資
 			stm.setObject(balance.parseLong("不動產、廠房及設備", "不動產及設備－淨額", "不動產及設備合計", "不動產、廠房及設備淨額")); // 固定資產
-			stm.setObject(balance.parseLong("資產總額", "資產總計")); // 總資產
+			stm.setObject(balance.parseLong("資產總額", "資產總計", "資產合計")); // 總資產
 
-			stm.setObject(balance.parseLong("流動負債合計")); // 流動負債
+			stm.setObject(balance.parseLong("流動負債合計", "流動負債總額")); // 流動負債
 			stm.setObject(balance.parseLong("非流動負債合計", "流動負債總額")); // 非流動負債
-			stm.setObject(balance.parseLong("負債總額", "負債總計")); // 總負債
-			stm.setObject(balance.parseLong("保留盈餘合計")); // 保留盈餘
+			stm.setObject(balance.總負債()); // 總負債
+			stm.setObject(balance.parseLong("保留盈餘合計", "保留盈餘總額", "保留盈餘總計", "保留盈餘")); // 保留盈餘
 			stm.setObject(balance.股本()); // 股本
 
 			stm.setObject(cashflow.parseLong("利息費用")); // 利息費用
@@ -1403,8 +1447,11 @@ public class ImportQuarterly implements Runnable {
 			stm.setObject(income.毛利()); // 毛利
 			stm.setObject(income.營業利益()); // 營業利益
 			stm.setObject(income.業外收支()); // 業外收支
-			stm.setObject(income.parseLong("繼續營業部門稅前淨利(淨損)", "繼續營業部門稅前淨利（淨損）", "繼續營業部門稅前淨益(淨損)", "繼續營業單位稅前淨利(淨損)", "繼續營業單位稅前淨利（淨損）", "繼續營業單位稅前純益（純損）", "繼續營業單位稅前淨益(淨損)", "稅前純益(純損)", "稅前淨利（淨損）", "繼續營業部門稅前損益", "繼續營業單位稅前損益", "繼續營業單位稅前合併淨利（淨損）")); // 稅前淨利
-			stm.setObject(income.parseLong("繼續營業部門稅後淨利（淨損）", "繼續營業部門淨利(淨損)", "繼續營業單位淨利(淨損)", "列計非常損益及會計原則變動累積影響數前損益", "列計非常損益及會計原則變動之累積影響數前淨利（淨額）", "繼續營業單位稅後純益（純損）", "合併總損益", "稅後純益", "本期損益（淨損）")); // 稅後淨利
+			stm.setObject(income.parseLong("繼續營業部門稅前淨利(淨損)", "繼續營業部門稅前淨利（淨損）", "繼續營業部門稅前淨益(淨損)", "繼續營業單位稅前淨利(淨損)",
+			        "繼續營業單位稅前淨利（淨損）", "繼續營業單位稅前純益（純損）", "繼續營業單位稅前淨益(淨損)", "稅前純益(純損)", "稅前淨利（淨損）", "繼續營業部門稅前損益",
+			        "繼續營業單位稅前損益", "繼續營業單位稅前合併淨利（淨損）")); // 稅前淨利
+			stm.setObject(income.parseLong("繼續營業部門稅後淨利（淨損）", "繼續營業部門淨利(淨損)", "繼續營業單位淨利(淨損)", "列計非常損益及會計原則變動累積影響數前損益",
+			        "列計非常損益及會計原則變動之累積影響數前淨利（淨額）", "繼續營業單位稅後純益（純損）", "合併總損益", "稅後純益", "本期損益（淨損）")); // 稅後淨利
 			stm.setObject(income.綜合損益()); // 綜合損益
 			stm.setObject(income.eps()); // EPS
 
@@ -1412,12 +1459,12 @@ public class ImportQuarterly implements Runnable {
 			stm.setObject(balance.parseLong("現金及約當現金")); // 現金及約當現金
 			stm.setObject(balance.parseLong("存 貨", "存貨")); // 存貨
 			stm.setObject(balance.parseLong("預付款項")); // 預付款項
-			stm.setObject(balance.parseLong("基金及投資", "基金及長期投資", "基金與投資")); // 長期投資
-			stm.setObject(balance.parseLong("固定資產淨額", "固定資產")); // 固定資產
+			stm.setObject(balance.長期投資()); // 長期投資
+			stm.setObject(balance.parseLong("固定資產淨額", "固定資產", "固定資產合計")); // 固定資產
 			stm.setObject(balance.parseLong("資產總計", "資產", "資產合計")); // 總資產
 
 			stm.setObject(balance.parseLong("流動負債合計", "流動負債")); // 流動負債
-			stm.setObject(balance.parseLong("負債總計", "負債總額")); // 總負債
+			stm.setObject(balance.總負債()); // 總負債
 			stm.setObject(balance.parseLong("保留盈餘合計", "保留盈餘")); // 保留盈餘
 			stm.setObject(balance.股本()); // 股本
 
@@ -1437,18 +1484,18 @@ public class ImportQuarterly implements Runnable {
 
 		queryIFRSs = new MyStatement(db.conn);
 		queryIFRSs.setInsertOnDuplicateStatement("quarterly", "YearQuarter", "StockNum", "營收", "成本", "毛利", "營業利益",
-				"業外收支", "稅前淨利", "稅後淨利", "綜合損益", "母公司業主淨利", "母公司業主綜合損益", "EPS", "流動資產", "現金及約當現金", "存貨", "預付款項", "非流動資產",
-				"備供出售金融資產", "持有至到期日金融資產", "以成本衡量之金融資產", "採用權益法之投資淨額", "固定資產", "總資產", "流動負債", "非流動負債", "總負債", "保留盈餘",
-				"股本", "利息費用", "營業現金流", "投資現金流", "融資現金流", "現金流累計需更正", "第四季累計需修正");
+		        "業外收支", "稅前淨利", "稅後淨利", "綜合損益", "母公司業主淨利", "母公司業主綜合損益", "EPS", "流動資產", "現金及約當現金", "存貨", "預付款項", "非流動資產",
+		        "長期投資", "固定資產", "總資產", "流動負債", "非流動負債", "總負債", "保留盈餘", "股本", "利息費用", "營業現金流", "投資現金流", "融資現金流",
+		        "現金流累計需更正", "第四季累計需修正");
 		queryIFRSs.setBatchSize(250);
 
 		queryNoIFRSs = new MyStatement(db.conn);
 		queryNoIFRSs.setInsertOnDuplicateStatement("quarterly", "YearQuarter", "StockNum", "營收", "成本", "毛利", "營業利益",
-				"業外收支", "稅前淨利", "稅後淨利", "綜合損益", "EPS", "流動資產", "現金及約當現金", "存貨", "預付款項", "長期投資", "固定資產", "總資產", "流動負債",
-				"總負債", "保留盈餘", "股本", "現金流累計需更正", "第四季累計需修正");
+		        "業外收支", "稅前淨利", "稅後淨利", "綜合損益", "EPS", "流動資產", "現金及約當現金", "存貨", "預付款項", "長期投資", "固定資產", "總資產", "流動負債",
+		        "總負債", "保留盈餘", "股本", "現金流累計需更正", "第四季累計需修正");
 		queryNoIFRSs.setBatchSize(250);
 
-		ExecutorService service = Executors.newFixedThreadPool(1);
+		ExecutorService service = Executors.newFixedThreadPool(8);
 		List<Future<?>> futures = new ArrayList<>();
 
 		while (true) {
@@ -1480,8 +1527,8 @@ public class ImportQuarterly implements Runnable {
 					Log.info(company.code + " Skipped: 表格內容殘缺");
 					continue;
 				}
-				
-				if (stockNum == 4144 && year < 2010) {
+
+				if (stockNum == 4141 && year < 2010) {
 					Log.info(company.code + " Skipped: 股本不正確");
 					continue;
 				}

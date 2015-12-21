@@ -38,10 +38,7 @@ class AnnualData {
 	long 存貨;
 	long 預付款項;
 	long 非流動資產;
-	long 備供出售金融資產;
-	long 持有至到期日金融資產;
-	long 以成本衡量之金融資產;
-	long 採用權益法之投資淨額;
+	long 長期投資;
 	long 固定資產;
 	long 總資產;
 	long 流動負債;
@@ -57,7 +54,6 @@ class AnnualData {
 
 	Long 股東權益;
 	Float 每股淨值;
-	Long 長期投資;
 	Float 毛利率;
 	Float 營業利益率;
 	Float 稅前淨利率;
@@ -108,10 +104,7 @@ class AnnualData {
 		存貨 = rs.getObject("存貨", Long.class);
 		預付款項 = rs.getObject("預付款項", Long.class);
 		非流動資產 = rs.getObject("非流動資產", Long.class);
-		備供出售金融資產 = rs.getObject("備供出售金融資產", Long.class);
-		持有至到期日金融資產 = rs.getObject("持有至到期日金融資產", Long.class);
-		以成本衡量之金融資產 = rs.getObject("以成本衡量之金融資產", Long.class);
-		採用權益法之投資淨額 = rs.getObject("採用權益法之投資淨額", Long.class);
+		長期投資 = rs.getObject("長期投資", Long.class);
 		固定資產 = rs.getObject("固定資產", Long.class);
 		總資產 = rs.getObject("總資產", Long.class);
 		流動負債 = rs.getObject("流動負債", Long.class);
@@ -128,7 +121,6 @@ class AnnualData {
 		/* 以下數值若不存在 則當成null 以方便判斷是否已經存在 */
 		股東權益 = (Long) rs.getObject("股東權益");
 		每股淨值 = (Float) rs.getObject("每股淨值");
-		長期投資 = (Long) rs.getObject("長期投資");
 		毛利率 = (Float) rs.getObject("毛利率");
 		營業利益率 = (Float) rs.getObject("營業利益率");
 		稅前淨利率 = (Float) rs.getObject("稅前淨利率");
@@ -236,9 +228,6 @@ class AnnualSupplement implements Runnable {
 			if (data.股本 != 0)
 				data.每股淨值 = (float) data.股東權益 / (data.股本 / 10); // 每股10元
 
-			if (data.長期投資 == null || data.長期投資 == 0)
-				data.長期投資 = data.備供出售金融資產 + data.持有至到期日金融資產 + data.以成本衡量之金融資產 + data.採用權益法之投資淨額;
-
 			if (data.營收 != 0) {
 				data.毛利率 = (float) data.毛利 / data.營收;
 				data.營業利益率 = (float) data.營業利益 / data.營收;
@@ -291,7 +280,6 @@ class AnnualSupplement implements Runnable {
 			stm.setObject(data.自由現金流);
 			stm.setObject(data.股東權益);
 			stm.setObject(data.每股淨值);
-			stm.setObject(data.長期投資);
 			stm.setObject(data.毛利率);
 			stm.setObject(data.營業利益率);
 			stm.setObject(data.稅前淨利率);
@@ -323,9 +311,9 @@ class AnnualSupplement implements Runnable {
 		Company[] companies = Company.getAllCompanies(db);
 
 		supplementStm = new MyStatement(db.conn);
-		supplementStm.setUpdateStatement("annual", "Year=? AND StockNum=?", "自由現金流", "股東權益", "每股淨值", "長期投資", "毛利率",
-				"營業利益率", "稅前淨利率", "稅後淨利率", "總資產週轉率", "權益乘數", "業外收支比重", "ROA", "ROE", "存貨周轉率", "負債比", "流動比", "速動比",
-				"利息保障倍數", "營業現金對流動負債比", "營業現金對負債比", "營業現金流對淨利比", "自由現金流對淨利比");
+		supplementStm.setUpdateStatement("annual", "Year=? AND StockNum=?", "自由現金流", "股東權益", "每股淨值", "毛利率", "營業利益率",
+		        "稅前淨利率", "稅後淨利率", "總資產週轉率", "權益乘數", "業外收支比重", "ROA", "ROE", "存貨周轉率", "負債比", "流動比", "速動比", "利息保障倍數",
+		        "營業現金對流動負債比", "營業現金對負債比", "營業現金流對淨利比", "自由現金流對淨利比");
 		supplementStm.setBatchSize(250);
 
 		ExecutorService service = Executors.newFixedThreadPool(10);
@@ -457,7 +445,7 @@ class Dividend {
 		final String formAction = "/bulletin/all_List.asp?xt=1&xy=1";
 		final String url = "http://www.capital.com.tw/" + formAction;
 		final String postData = String
-				.format("VD1=1&xYY=%d&xeMM=13&mkt=tse&s1=none&keyword=&imageField2.x=30&imageField2.y=8", year);
+		        .format("VD1=1&xYY=%d&xeMM=13&mkt=tse&s1=none&keyword=&imageField2.x=30&imageField2.y=8", year);
 		final String filename = String.format(folderPath + "Capital_%04d.html", year);
 
 		Log.info("Download dividend info " + year);
@@ -578,7 +566,7 @@ public class ImportAnnual implements Runnable {
 		QuarterlyBasicTable income = new QuarterlyBasicTable(year, 4, company, QuarterlyBasicTable.INCOME_STATEMENT);
 		QuarterlyBasicTable balance = new QuarterlyBasicTable(year, 4, company, QuarterlyBasicTable.BALANCE_SHEET);
 		QuarterlyBasicTable cashflow = new QuarterlyBasicTable(year, 4, company,
-				QuarterlyBasicTable.CASHFLOW_STATEMENT);
+		        QuarterlyBasicTable.CASHFLOW_STATEMENT);
 
 		boolean incomeResult = income.parse();
 		boolean balanceResult = balance.parse();
@@ -603,22 +591,19 @@ public class ImportAnnual implements Runnable {
 			stm.setObject(income.parseLong("母公司業主（綜合損益）")); // 母公司業主綜合損益
 			stm.setObject(income.eps()); // EPS
 
-			stm.setObject(balance.parseLong("流動資產合計")); // 流動資產
+			stm.setObject(balance.parseLong("流動資產合計", "流動資產總額", "流動資產總計")); // 流動資產
 			stm.setObject(balance.parseLong("現金及約當現金")); // 現金及約當現金
 			stm.setObject(balance.parseLong("存貨")); // 存貨
 			stm.setObject(balance.parseLong("預付款項")); // 預付款項
-			stm.setObject(balance.parseLong("非流動資產合計")); // 非流動資產
-			stm.setObject(balance.parseLong("備供出售金融資產－非流動淨額", "備供出售金融資產－非流動")); // 備供出售金融資產
-			stm.setObject(balance.parseLong("持有至到期日金融資產－非流動淨額", "持有至到期日金融資產－非流動")); // 持有至到期日金融資產
-			stm.setObject(balance.parseLong("以成本衡量之金融資產－非流動淨額", "以成本衡量之金融資產－非流動")); // 以成本衡量之金融資產
-			stm.setObject(balance.parseLong("採用權益法之投資淨額", "採用權益法之投資")); // 採用權益法之投資淨額
+			stm.setObject(balance.parseLong("非流動資產合計", "非流動資產總額", "非流動資產總計")); // 非流動資產
+			stm.setObject(balance.長期投資()); // 長期投資
 			stm.setObject(balance.parseLong("不動產、廠房及設備", "不動產及設備－淨額", "不動產及設備合計", "不動產、廠房及設備淨額")); // 固定資產
-			stm.setObject(balance.parseLong("資產總額", "資產總計")); // 總資產
+			stm.setObject(balance.parseLong("資產總額", "資產總計", "資產合計")); // 總資產
 
-			stm.setObject(balance.parseLong("流動負債合計")); // 流動負債
+			stm.setObject(balance.parseLong("流動負債合計", "流動負債總額")); // 流動負債
 			stm.setObject(balance.parseLong("非流動負債合計", "流動負債總額")); // 非流動負債
-			stm.setObject(balance.parseLong("負債總額", "負債總計")); // 總負債
-			stm.setObject(balance.parseLong("保留盈餘合計")); // 保留盈餘
+			stm.setObject(balance.總負債()); // 總負債
+			stm.setObject(balance.parseLong("保留盈餘合計", "保留盈餘總額", "保留盈餘總計", "保留盈餘")); // 保留盈餘
 			stm.setObject(balance.股本()); // 股本
 
 			stm.setObject(cashflow.parseLong("利息費用")); // 利息費用
@@ -656,21 +641,27 @@ public class ImportAnnual implements Runnable {
 			stm.setObject(income.毛利()); // 毛利
 			stm.setObject(income.營業利益()); // 營業利益
 			stm.setObject(income.業外收支()); // 業外收支
-			stm.setObject(income.parseLong("繼續營業部門稅前淨利(淨損)", "繼續營業部門稅前淨利（淨損）", "繼續營業部門稅前淨益(淨損)", "繼續營業單位稅前淨利(淨損)", "繼續營業單位稅前淨利（淨損）", "繼續營業單位稅前純益（純損）", "繼續營業單位稅前淨益(淨損)", "稅前純益(純損)", "稅前淨利（淨損）", "繼續營業部門稅前損益", "繼續營業單位稅前損益", "繼續營業單位稅前合併淨利（淨損）")); // 稅前淨利
-			stm.setObject(income.parseLong("繼續營業部門稅後淨利（淨損）", "繼續營業部門淨利(淨損)", "繼續營業單位淨利(淨損)", "列計非常損益及會計原則變動累積影響數前損益", "列計非常損益及會計原則變動之累積影響數前淨利（淨額）", "繼續營業單位稅後純益（純損）", "合併總損益", "稅後純益", "本期損益（淨損）")); // 稅後淨利
+			stm.setObject(income.parseLong("繼續營業部門稅前淨利(淨損)", "繼續營業部門稅前淨利（淨損）", "繼續營業部門稅前淨益(淨損)", "繼續營業單位稅前淨利(淨損)",
+			        "繼續營業單位稅前淨利（淨損）", "繼續營業單位稅前純益（純損）", "繼續營業單位稅前淨益(淨損)", "稅前純益(純損)", "稅前淨利（淨損）", "繼續營業部門稅前損益",
+			        "繼續營業單位稅前損益", "繼續營業單位稅前合併淨利（淨損）")); // 稅前淨利
+			stm.setObject(income.parseLong("繼續營業部門稅後淨利（淨損）", "繼續營業部門淨利(淨損)", "繼續營業單位淨利(淨損)", "列計非常損益及會計原則變動累積影響數前損益",
+			        "列計非常損益及會計原則變動之累積影響數前淨利（淨額）", "繼續營業單位稅後純益（純損）", "合併總損益", "稅後純益", "本期損益（淨損）")); // 稅後淨利
 			stm.setObject(income.綜合損益()); // 綜合損益
 			stm.setObject(income.eps()); // EPS
+
+			if (company.stockNum == 5854 && year == 2009)
+				Log.info("");
 
 			stm.setObject(balance.parseLong("流動資產")); // 流動資產
 			stm.setObject(balance.parseLong("現金及約當現金")); // 現金及約當現金
 			stm.setObject(balance.parseLong("存 貨", "存貨")); // 存貨
 			stm.setObject(balance.parseLong("預付款項")); // 預付款項
-			stm.setObject(balance.parseLong("基金及投資", "基金及長期投資", "基金與投資")); // 長期投資
-			stm.setObject(balance.parseLong("固定資產淨額", "固定資產")); // 固定資產
+			stm.setObject(balance.長期投資()); // 長期投資
+			stm.setObject(balance.parseLong("固定資產淨額", "固定資產", "固定資產合計")); // 固定資產
 			stm.setObject(balance.parseLong("資產總計", "資產", "資產合計")); // 總資產
 
 			stm.setObject(balance.parseLong("流動負債合計", "流動負債")); // 流動負債
-			stm.setObject(balance.parseLong("負債總計", "負債總額")); // 總負債
+			stm.setObject(balance.總負債()); // 總負債
 			stm.setObject(balance.parseLong("保留盈餘合計", "保留盈餘")); // 保留盈餘
 			stm.setObject(balance.股本()); // 股本
 			stm.addBatch();
@@ -686,18 +677,17 @@ public class ImportAnnual implements Runnable {
 
 		queryIFRSs = new MyStatement(db.conn);
 		queryIFRSs.setInsertOnDuplicateStatement("annual", "Year", "StockNum", "營收", "成本", "毛利", "營業利益", "業外收支", "稅前淨利",
-				"稅後淨利", "綜合損益", "母公司業主淨利", "母公司業主綜合損益", "EPS", "流動資產", "現金及約當現金", "存貨", "預付款項", "非流動資產", "備供出售金融資產",
-				"持有至到期日金融資產", "以成本衡量之金融資產", "採用權益法之投資淨額", "固定資產", "總資產", "流動負債", "非流動負債", "總負債", "保留盈餘", "股本", "利息費用",
-				"營業現金流", "投資現金流", "融資現金流");
+		        "稅後淨利", "綜合損益", "母公司業主淨利", "母公司業主綜合損益", "EPS", "流動資產", "現金及約當現金", "存貨", "預付款項", "非流動資產", "長期投資", "固定資產",
+		        "總資產", "流動負債", "非流動負債", "總負債", "保留盈餘", "股本", "利息費用", "營業現金流", "投資現金流", "融資現金流");
 		queryIFRSs.setBatchSize(250);
 
 		queryNoIFRSs = new MyStatement(db.conn);
 		queryNoIFRSs.setInsertOnDuplicateStatement("annual", "Year", "StockNum", "營收", "成本", "毛利", "營業利益", "業外收支",
-				"稅前淨利", "稅後淨利", "綜合損益", "EPS", "流動資產", "現金及約當現金", "存貨", "預付款項", "長期投資", "固定資產", "總資產", "流動負債", "總負債",
-				"保留盈餘", "股本");
+		        "稅前淨利", "稅後淨利", "綜合損益", "EPS", "流動資產", "現金及約當現金", "存貨", "預付款項", "長期投資", "固定資產", "總資產", "流動負債", "總負債",
+		        "保留盈餘", "股本");
 		queryNoIFRSs.setBatchSize(250);
 
-		ExecutorService service = Executors.newFixedThreadPool(10);
+		ExecutorService service = Executors.newFixedThreadPool(8);
 		List<Future<?>> futures = new ArrayList<>();
 
 		for (; year < currentYear; year++) {
@@ -724,8 +714,8 @@ public class ImportAnnual implements Runnable {
 					Log.info(company.code + " Skipped: 表格內容殘缺");
 					continue;
 				}
-				
-				if (stockNum == 4144 && year < 2010) {
+
+				if (stockNum == 4141 && year < 2010) {
 					Log.info(company.code + " Skipped: 股本不正確");
 					continue;
 				}
@@ -748,10 +738,15 @@ public class ImportAnnual implements Runnable {
 
 		try {
 			MyDB db = new MyDB();
+			Calendar cal = Calendar.getInstance();
+			int currentMonth = cal.get(Calendar.MONTH) + 1;
+
 			int year = db.getLastAnnualRevenue();
 			supplementBasicData(db, year);
 
-			Dividend.removeLatestFile();
+			if (currentMonth >= 4 && currentMonth <= 10) {
+				Dividend.removeLatestFile();
+			}
 			Dividend.supplementDB(db, year + 1);
 
 			AnnualSupplement.calculate(db);

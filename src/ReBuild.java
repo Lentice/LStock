@@ -1,3 +1,4 @@
+import java.util.Calendar;
 
 public class ReBuild {
 
@@ -9,6 +10,9 @@ public class ReBuild {
 		MyDB db = null;
 
 		try {
+			Calendar cal = Calendar.getInstance();
+			int currentMonth = cal.get(Calendar.MONTH) + 1;
+			
 			db = new MyDB();
 			DailyTradeStocks.removeLatestFile();
 			DailyTradeStocks.supplementDB(db);
@@ -30,9 +34,11 @@ public class ReBuild {
 			year = db.getLastAnnualRevenue();
 			ImportAnnual.supplementBasicData(db, year);
 
-			Dividend.removeLatestFile();
+			if (currentMonth >= 4 && currentMonth <= 10) {
+				Dividend.removeLatestFile();
+			}
 			Dividend.supplementDB(db, year + 1);
-
+			
 			AnnualSupplement.calculate(db);
 
 			db.close();
