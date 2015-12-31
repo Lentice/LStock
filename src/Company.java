@@ -11,15 +11,27 @@ public class Company {
 	public Date lastUpdateDate;
 	public int lastUpdateInt;
 
-	float latestPrice;
+	public float 現價;
+	public float 當前本益比;
+
 	MonthlyData[] mData;
 	QuarterlyData[] qData;
 	AnnualData[] yData;
 
+	int lastYear;
+	int lastYearQuarter;
+	int lastYearMonth;
+
 	MyDB db;
 
-	public Company(MyDB db) {
+	public Company(MyDB db, String code, int stockNum, String name, String category, Date lastUpdateDate)
+	        throws Exception {
 		this.db = db;
+		this.code = code;
+		this.stockNum = stockNum;
+		this.name = name;
+		this.category = category;
+		lastUpdateInt = Integer.parseInt(lastUpdateDate.toString().replaceAll("-", ""));
 	}
 
 	public boolean isValidQuarter(int year, int quarter) {
@@ -65,7 +77,9 @@ public class Company {
 	}
 
 	void fetchAllBasicData() throws Exception {
-		latestPrice = getlatestPrice();
+		現價 = getlatestPrice();
+		當前本益比 = getLatestPER();
+
 		fetchAllMonth();
 		fetchAllQuarter();
 		fetchAllYear();
@@ -73,14 +87,21 @@ public class Company {
 
 	void fetchAllMonth() throws SQLException {
 		mData = MonthlyData.getAllData(db, stockNum);
+		if (mData != null)
+			lastYearMonth = mData[mData.length - 1].YearMonth;
 	}
 
 	void fetchAllQuarter() throws SQLException {
 		qData = QuarterlyData.getAllData(db, stockNum);
+		if (qData != null)
+			lastYearQuarter = qData[qData.length - 1].yearQuarter;
 	}
 
 	void fetchAllYear() throws SQLException {
 		yData = AnnualData.getAllData(db, stockNum);
+		if (yData != null) {
+			lastYear = yData[yData.length - 1].year;
+		}
 	}
 
 	float getlatestPrice() throws Exception {
@@ -91,13 +112,26 @@ public class Company {
 		ResultSet rs = stm.executeQuery(query);
 
 		if (!rs.first()) {
-			throw new Exception("no latest price");
+			throw new Exception(stockNum + " " + name + " has no latest price");
 		}
 
 		float price = rs.getFloat("收盤價");
 		stm.close();
 
 		return price;
+	}
+
+	// 取得當前本益比
+	float getLatestPER() throws SQLException {
+		ResultSet rs;
+		Statement stm = db.conn.createStatement();
+		rs = stm.executeQuery(
+		        "SELECT 本益比 AS val FROM daily WHERE Date = (SELECT MAX(Date) FROM daily) AND StockNum = " + stockNum);
+		rs.first();
+		float curRat = rs.getFloat("val");
+
+		rs.close();
+		return curRat;
 	}
 
 	DailyData getDData(Date date) throws Exception {
@@ -143,14 +177,9 @@ public class Company {
 		Company[] companies = new Company[numCompany];
 		int idx = 0;
 		while (companySet.next()) {
-			Company info = new Company(db);
-			info.code = companySet.getString("Code");
-			info.stockNum = Integer.parseInt(info.code);
-			info.name = companySet.getString("Name");
-			info.category = companySet.getString("產業別");
-			info.lastUpdateDate = companySet.getDate("last_update");
-			info.lastUpdateInt = Integer.parseInt(info.lastUpdateDate.toString().replaceAll("-", ""));
-			companies[idx] = info;
+			String code = companySet.getString("Code");
+			companies[idx] = new Company(db, code, Integer.parseInt(code), companySet.getString("Name"),
+			        companySet.getString("產業別"), companySet.getDate("last_update"));
 			idx++;
 		}
 

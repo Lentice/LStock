@@ -211,6 +211,7 @@ class AnnualSupplement implements Runnable {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			System.exit(-1);
 		}
 	}
 
@@ -244,8 +245,9 @@ class AnnualSupplement implements Runnable {
 			}
 
 			if (data.股東權益 != 0) {
-				data.ROE = (float) data.稅後淨利 / data.股東權益;
 				data.權益乘數 = (float) data.總資產 / data.股東權益;
+				if (past1Y != null && past1Y.股東權益 != 0)
+					data.ROE = (float) data.稅後淨利 / ((data.股東權益 + past1Y.股東權益) / 2);
 			}
 
 			if (data.流動負債 != 0) {
@@ -430,6 +432,15 @@ class Dividend {
 			temp = HtmlParser.getText(td.get(7));
 			info.exRightDate = (temp == null) ? null : Date.valueOf(temp);
 			info.refPrice = HtmlParser.getText(td.get(10));
+			
+			if (info.cashDiv == null)
+				info.cashDiv = "0";
+
+			if (info.RetainedEarningsDiv == null)
+				info.RetainedEarningsDiv = "0";
+			
+			if (info.CapitalReserveDiv == null)
+				info.CapitalReserveDiv = "0";
 
 			divInfo[i] = info;
 		}
@@ -500,6 +511,199 @@ class Dividend {
 			Dividend div = new Dividend(year);
 			div.importToDB(stm);
 		}
+		stm.close();
+	}
+}
+
+class AnnualCashflow implements Runnable {
+	// http://jdata.yuanta.com.tw/z/zc/zc3/zc3a_2885.djhtm
+
+	final static String folderPath = "Data\\券商表單\\";
+	public static MyDB db;
+	static MyStatement stm;
+	static Object lock = new Object();
+
+	String filename;
+	File file;
+	String formAction;
+	int year;
+	String[][] data;
+	Company company;
+
+	AnnualCashflow(Company company) throws Exception {
+		this.year = 2014;
+		this.company = company;
+		filename = String.format(folderPath + "現金流量年表_%04d_%d.html", year, company.stockNum);
+		file = new File(filename);
+		if (!file.exists()) {
+			download();
+			file = new File(filename);
+		}
+	}
+
+	boolean parse() throws Exception {
+
+		if (!file.exists()) {
+			Log.warn("檔案不存在: " + file.getPath());
+			return false;
+		}
+
+		Document doc = Jsoup.parse(file, "UTF-8");
+		Elements eTitles = null;
+
+		eTitles = doc.getElementsContainingOwnText("期別利");
+
+		if (eTitles == null || eTitles.size() == 0) {
+			return false;
+		}
+
+		int numColumn = eTitles.first().siblingElements().size();
+		Elements eTableRows = eTitles.first().parent().parent().children();
+
+		data = new String[numColumn + 1][eTableRows.size()];
+		for (int i = 0; i < eTableRows.size(); i++) {
+			Elements eColumns = eTableRows.get(i).children();
+			if (eColumns.size() < 2)
+				continue;
+
+			data[i][0] = HtmlParser.getText(eColumns.get(0));
+			data[i][1] = HtmlParser.getText(eColumns.get(1));
+
+			if (data[i][1] != null)
+				data[i][1] = data[i][1].replace(".00", "");
+
+		}
+
+		return true;
+	}
+	
+	public String getData(String... names) {
+		if (data == null)
+			return null;
+
+		boolean foundTitle = false;
+		String tempData = null;
+		for (String name : names) {
+			for (int i = 0; i < data.length; i++) {
+				String title = data[i][0];
+				if (title == null || !title.equals(name))
+					continue;
+
+				foundTitle = true;
+				if (data[i][1] != null && data[i][1].length() > 0) {
+					return data[i][1];
+				} else
+					tempData = data[i][1];
+			}
+		}
+		if (tempData != null)
+			return tempData;
+
+		if (foundTitle)
+			return "0";
+		else
+			return null;
+	}
+	
+	Long parseLong(String... names) {
+		String temp = getData(names);
+		if (temp == null)
+			return null;
+		else
+			return Long.parseLong(temp);
+	}
+
+	
+	void importToDB() {
+		
+	}
+	
+	public void run() {
+
+		try {
+			if (!parse())
+				return;
+
+			synchronized (lock) {
+				Log.info("Import Cashflow " + company.code);
+				importToDB();
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(-1);
+		}
+	}
+
+	int download() throws Exception {
+		if (year < 2001)
+			throw new Exception("Year is earlier than 2001");
+
+		final String url = String.format("http://jdata.yuanta.com.tw/z/zc/zc3/zc3a_%d.djhtm", company.stockNum);
+
+		Log.info("Download dividend info " + year);
+		int ret = Downloader.httpDownload(url, filename);
+		if (ret != 0) {
+			Log.info("Fail");
+			return ret;
+		}
+
+		return 0;
+	}
+
+	public static void supplementBasicData(MyDB myDB, int year) throws Exception {
+		//Calendar cal = Calendar.getInstance();
+		//int currentYear = cal.get(Calendar.YEAR);
+
+		db = myDB;
+		Company[] companies = Company.getAllCompanies(db);
+
+		stm = new MyStatement(db.conn);
+		stm.setUpdateStatement("annual", "Year=? AND StockNum=?", "利息費用", "營業現金流", "投資現金流", "融資現金流");
+		stm.setBatchSize(2000);
+
+		ExecutorService service = Executors.newFixedThreadPool(8);
+		List<Future<?>> futures = new ArrayList<>();
+
+		for (Company company : companies) {
+			// skip no data stocks
+			int stockNum = company.stockNum;
+
+			if (company.category == null || stockNum < 1000 || stockNum > 9999) {
+				Log.info(company.code + " skipped: invalid stock");
+				continue;
+			}
+
+			if (!company.isValidYear(year)) {
+				Log.info(company.code + " skipped: 已下市");
+				continue;
+			}
+
+			if (stockNum == 5880 && year < 2013) {
+				Log.info(company.code + " Skipped: 公開資訊站查無資料");
+				continue;
+			}
+
+			if (stockNum == 2841 && year < 2006) {
+				Log.info(company.code + " Skipped: 表格內容殘缺");
+				continue;
+			}
+
+			if (stockNum == 4141 && year < 2010) {
+				Log.info(company.code + " Skipped: 股本不正確");
+				continue;
+			}
+
+			futures.add(service.submit(new AnnualCashflow(company)));
+			break;
+		}
+
+		// wait for all tasks to complete before continuing
+		for (Future<?> f : futures) {
+			f.get();
+		}
+		service.shutdownNow();
+
 		stm.close();
 	}
 }
@@ -649,9 +853,6 @@ public class ImportAnnual implements Runnable {
 			stm.setObject(income.綜合損益()); // 綜合損益
 			stm.setObject(income.eps()); // EPS
 
-			if (company.stockNum == 5854 && year == 2009)
-				Log.info("");
-
 			stm.setObject(balance.parseLong("流動資產")); // 流動資產
 			stm.setObject(balance.parseLong("現金及約當現金")); // 現金及約當現金
 			stm.setObject(balance.parseLong("存 貨", "存貨")); // 存貨
@@ -721,6 +922,9 @@ public class ImportAnnual implements Runnable {
 				}
 
 				futures.add(service.submit(new ImportAnnual(year, company)));
+
+				if (company.stockNum == 1101)
+					new AnnualCashflow(company);
 			}
 		}
 

@@ -171,6 +171,7 @@ class DailyTaiEx implements Runnable {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			System.exit(-1);
 		}
 	}
 
@@ -386,6 +387,7 @@ class DailyTradeStocks implements Runnable {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			System.exit(-1);
 		}
 	}
 
