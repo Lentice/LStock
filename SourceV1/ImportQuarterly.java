@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -68,13 +69,17 @@ class QuarterlyData {
 	Float 流動比;
 	Float 速動比;
 	Float 利息保障倍數;
-	Float 近四季利息保障倍數;
 	Float 營業現金對流動負債比;
 	Float 營業現金對負債比;
 	Float 營業現金流對淨利比;
 	Float 自由現金流對淨利比;
 	Float 盈再率;
 
+	long 近四季稅後淨利;
+	long 近四季營業現金流;
+	Float 近四季營業利益率;
+	Float 近四季ROE;
+	Float 近四季利息保障倍數;
 	Float 單季營收年增率;
 	Float 近4季營收年增率;
 	Float 單季毛利年增率;
@@ -151,13 +156,17 @@ class QuarterlyData {
 		流動比 = (Float) rs.getObject("流動比");
 		速動比 = (Float) rs.getObject("速動比");
 		利息保障倍數 = (Float) rs.getObject("利息保障倍數");
-		近四季利息保障倍數 = (Float) rs.getObject("近四季利息保障倍數");
 		營業現金對流動負債比 = (Float) rs.getObject("營業現金對流動負債比");
 		營業現金對負債比 = (Float) rs.getObject("營業現金對負債比");
 		營業現金流對淨利比 = (Float) rs.getObject("營業現金流對淨利比");
 		自由現金流對淨利比 = (Float) rs.getObject("自由現金流對淨利比");
 		盈再率 = (Float) rs.getObject("盈再率");
 
+		近四季稅後淨利 = rs.getObject("近四季稅後淨利", Long.class);
+		近四季營業現金流 = rs.getObject("近四季營業現金流", Long.class);
+		近四季營業利益率 = (Float) rs.getObject("近四季營業利益率");
+		近四季ROE = (Float) rs.getObject("近四季ROE");
+		近四季利息保障倍數 = (Float) rs.getObject("近四季利息保障倍數");
 		單季營收年增率 = (Float) rs.getObject("單季營收年增率");
 		近4季營收年增率 = (Float) rs.getObject("近4季營收年增率");
 		單季毛利年增率 = (Float) rs.getObject("單季毛利年增率");
@@ -211,7 +220,7 @@ class QuarterlyData {
 	}
 
 	static QuarterlyData getShiftData(QuarterlyData[] allQuarter, int currentYearQuarter, int shiftCount)
-	        throws SQLException {
+			throws SQLException {
 		int year = currentYearQuarter / 100;
 		int quarter = currentYearQuarter % 100;
 
@@ -427,6 +436,8 @@ class QuarterlyFixAndSupplement implements Runnable {
 				data.權益乘數 = (float) data.總資產 / data.股東權益;
 				if (past1Q != null && past1Q.股東權益 != 0)
 					data.ROE = (float) data.稅後淨利 / ((data.股東權益 + past1Q.股東權益) / 2);
+				else
+					data.ROE = (float) data.稅後淨利 / data.股東權益;
 			}
 
 			if (data.流動負債 != 0) {
@@ -450,6 +461,15 @@ class QuarterlyFixAndSupplement implements Runnable {
 				long 稅前淨利累計 = data.稅前淨利 + past1Q.稅前淨利 + past2Q.稅前淨利 + past3Q.稅前淨利;
 				if (利息費用累計 != 0)
 					data.近四季利息保障倍數 = (float) (稅前淨利累計 + 利息費用累計) / 利息費用累計;
+
+				data.近四季稅後淨利 = data.稅後淨利 + past1Q.稅後淨利 + past2Q.稅後淨利 + past3Q.稅後淨利;
+				data.近四季營業現金流 = data.營業現金流 + past1Q.營業現金流 + past2Q.營業現金流 + past3Q.營業現金流;
+
+				long 近四季營收 = data.營收 + past1Q.營收 + past2Q.營收 + past3Q.營收;
+				long 近四季營業利益 = data.營業利益 + past1Q.營業利益 + past2Q.營業利益 + past3Q.營業利益;
+				data.近四季營業利益率 = (float) 近四季營收 / 近四季營業利益;
+				// if (past3Q != null && past2Q != null && past1Q != null)
+				data.近四季ROE = data.ROE + past1Q.ROE + past2Q.ROE + past3Q.ROE;
 			}
 
 			if (past1Q != null) {
@@ -480,9 +500,9 @@ class QuarterlyFixAndSupplement implements Runnable {
 			}
 
 			if (past7Q != null && past6Q != null && past5Q != null && past4Q != null && past3Q != null && past2Q != null
-			        && past1Q != null && past7Q.第四季累計需修正 == false && past6Q.第四季累計需修正 == false
-			        && past5Q.第四季累計需修正 == false && past4Q.第四季累計需修正 == false && past3Q.第四季累計需修正 == false
-			        && past2Q.第四季累計需修正 == false && past1Q.第四季累計需修正 == false) {
+					&& past1Q != null && past7Q.第四季累計需修正 == false && past6Q.第四季累計需修正 == false
+					&& past5Q.第四季累計需修正 == false && past4Q.第四季累計需修正 == false && past3Q.第四季累計需修正 == false
+					&& past2Q.第四季累計需修正 == false && past1Q.第四季累計需修正 == false) {
 				long past4quarter;
 				long lastYearpast4quarter;
 				float fpast4quarter;
@@ -553,13 +573,17 @@ class QuarterlyFixAndSupplement implements Runnable {
 			stm.setObject(data.速動比);
 
 			stm.setObject(data.利息保障倍數);
-			stm.setObject(data.近四季利息保障倍數);
 			stm.setObject(data.營業現金對流動負債比);
 			stm.setObject(data.營業現金對負債比);
 			stm.setObject(data.營業現金流對淨利比);
 			stm.setObject(data.自由現金流對淨利比);
 			// TODO: 盈再率
 
+			stm.setObject(data.近四季稅後淨利);
+			stm.setObject(data.近四季營業現金流);
+			stm.setObject(data.近四季營業利益率);
+			stm.setObject(data.近四季ROE);
+			stm.setObject(data.近四季利息保障倍數);
 			stm.setObject(data.單季營收年增率);
 			stm.setObject(data.近4季營收年增率);
 			stm.setObject(data.單季毛利年增率);
@@ -589,19 +613,20 @@ class QuarterlyFixAndSupplement implements Runnable {
 
 		cashflowStm = new MyStatement(db.conn);
 		cashflowStm.setUpdateStatement("quarterly", "YearQuarter=? AND StockNum=?", "營業現金流", "投資現金流", "融資現金流",
-		        "現金流累計需更正");
+				"現金流累計需更正");
 
 		quarter4Stm = new MyStatement(db.conn);
 		quarter4Stm.setUpdateStatement("quarterly", "YearQuarter=? AND StockNum=?", "營收", "成本", "毛利", "營業利益", "業外收支",
-		        "稅前淨利", "稅後淨利", "綜合損益", "母公司業主淨利", "母公司業主綜合損益", "EPS", "營業現金流", "投資現金流", "融資現金流", "第四季累計需修正", "季報有缺少");
+				"稅前淨利", "稅後淨利", "綜合損益", "母公司業主淨利", "母公司業主綜合損益", "EPS", "營業現金流", "投資現金流", "融資現金流", "第四季累計需修正", "季報有缺少");
 		quarter4Stm.setBatchSize(250);
 
 		supplementStm = new MyStatement(db.conn);
 		supplementStm.setUpdateStatement("quarterly", "YearQuarter=? AND StockNum=?", "自由現金流", "股東權益", "每股淨值", "毛利率",
-		        "營業利益率", "稅前淨利率", "稅後淨利率", "總資產週轉率", "權益乘數", "業外收支比重", "ROA", "ROE", "存貨周轉率", "負債比", "流動比", "速動比",
-		        "利息保障倍數", "近四季利息保障倍數", "營業現金對流動負債比", "營業現金對負債比", "營業現金流對淨利比", "自由現金流對淨利比", "單季營收年增率", "近4季營收年增率",
-		        "單季毛利年增率", "近4季毛利年增率", "單季營業利益年增率", "近4季營業利益年增率", "單季稅後淨利年增率", "近4季稅後淨利年增率", "單季EPS年增率", "近4季EPS年增率",
-		        "單季總資產年增率", "近4季總資產年增率", "單季淨值年增率", "近4季淨值年增率", "單季固定資產年增率", "近4季固定資產年增率");
+				"營業利益率", "稅前淨利率", "稅後淨利率", "總資產週轉率", "權益乘數", "業外收支比重", "ROA", "ROE", "存貨周轉率", "負債比", "流動比", "速動比",
+				"利息保障倍數", "營業現金對流動負債比", "營業現金對負債比", "營業現金流對淨利比", "自由現金流對淨利比", "近四季稅後淨利", "近四季營業現金流", "近四季營業利益率",
+				"近四季ROE", "近四季利息保障倍數", "單季營收年增率", "近4季營收年增率", "單季毛利年增率", "近4季毛利年增率", "單季營業利益年增率", "近4季營業利益年增率",
+				"單季稅後淨利年增率", "近4季稅後淨利年增率", "單季EPS年增率", "近4季EPS年增率", "單季總資產年增率", "近4季總資產年增率", "單季淨值年增率", "近4季淨值年增率",
+				"單季固定資產年增率", "近4季固定資產年增率");
 		supplementStm.setBatchSize(250);
 
 		ExecutorService service = Executors.newFixedThreadPool(10);
@@ -763,6 +788,21 @@ class QuarterlyBasicTable {
 
 		return true;
 	}
+	
+	private boolean noQuarterlyData(String filename) throws IOException {
+		File file = new File(filename);
+
+		if (!file.exists())
+			return false;
+
+		Document doc = Jsoup.parse(file, "UTF-8");
+		if (doc.toString().contains("查無需求資料") || doc.toString().contains("查無所需資料")) {
+			file.delete();
+			return true;
+		}
+		
+		return false;
+	}
 
 	/**
 	 * 檢查下載是否成功: 檔案太小代表失敗
@@ -772,7 +812,7 @@ class QuarterlyBasicTable {
 	 */
 	private static boolean isValidQuarterlyData(String filename, int minSize) throws Exception {
 		File file = new File(filename);
-
+	
 		if (!file.exists())
 			return false;
 
@@ -780,6 +820,15 @@ class QuarterlyBasicTable {
 			return true;
 
 		Document doc = Jsoup.parse(file, "UTF-8");
+		if (doc.toString().contains("查詢過於頻繁")) {
+			file.delete();
+			return false;
+		} else if (doc.toString().contains("資料庫連線時發生下述問題")) {
+			file.delete();
+			return false;
+		}
+		
+		doc = Jsoup.parse(file, "MS950");
 		if (doc.toString().contains("查詢過於頻繁")) {
 			file.delete();
 			return false;
@@ -792,7 +841,7 @@ class QuarterlyBasicTable {
 
 		switch (tableType) {
 		case BALANCE_SHEET:
-			folderPath = Environment.QUARTERLY_BALANCE_SHEET;
+			folderPath = DataPath.QUARTERLY_BALANCE_SHEET;
 			filename = String.format(folderPath + "%s_%04d_%d.html", company.code, year, quarter);
 			if (useIFRSs)
 				formAction = "/mops/web/ajax_t164sb03";
@@ -801,7 +850,7 @@ class QuarterlyBasicTable {
 
 			break;
 		case INCOME_STATEMENT:
-			folderPath = Environment.QUARTERLY_INCOME_STATEMENT;
+			folderPath = DataPath.QUARTERLY_INCOME_STATEMENT;
 			filename = String.format(folderPath + "%s_%04d_%d.html", company.code, year, quarter);
 			if (useIFRSs)
 				formAction = "/mops/web/ajax_t164sb04";
@@ -810,7 +859,7 @@ class QuarterlyBasicTable {
 
 			break;
 		case CASHFLOW_STATEMENT:
-			folderPath = Environment.QUARTERLY_CASHFLOW_STATEMENT;
+			folderPath = DataPath.QUARTERLY_CASHFLOW_STATEMENT;
 			filename = String.format(folderPath + "%s_%04d_%d.html", company.code, year, quarter);
 			if (useIFRSs)
 				formAction = "/mops/web/ajax_t164sb05";
@@ -819,17 +868,17 @@ class QuarterlyBasicTable {
 
 			break;
 		case BALANCE_SHEET_IDV:
-			folderPath = Environment.QUARTERLY_BALANCE_SHEET;
+			folderPath = DataPath.QUARTERLY_BALANCE_SHEET;
 			filename = String.format(folderPath + "%s_%04d_%d_idv.html", company.code, year, quarter);
 			formAction = "/mops/web/ajax_t05st31";
 			break;
 		case INCOME_STATEMENT_IDV:
-			folderPath = Environment.QUARTERLY_INCOME_STATEMENT;
+			folderPath = DataPath.QUARTERLY_INCOME_STATEMENT;
 			filename = String.format(folderPath + "%s_%04d_%d_idv.html", company.code, year, quarter);
 			formAction = "/mops/web/ajax_t05st32";
 			break;
 		case CASHFLOW_STATEMENT_IDV:
-			folderPath = Environment.QUARTERLY_CASHFLOW_STATEMENT;
+			folderPath = DataPath.QUARTERLY_CASHFLOW_STATEMENT;
 			filename = String.format(folderPath + "%s_%04d_%d_idv.html", company.code, year, quarter);
 			formAction = "/mops/web/ajax_t05st36";
 			break;
@@ -860,8 +909,8 @@ class QuarterlyBasicTable {
 			postData = "step=1&firstin=1&off=1&keyword4=&code1=&TYPEK2=&checkbtn=&queryName=co_id&TYPEK=all&isnew=false&";
 
 		postData = postData + String.format("co_id=%s&year=%s&season=0%s", URLEncoder.encode(company.code, "UTF-8"),
-		        URLEncoder.encode(String.valueOf(year - 1911), "UTF-8"),
-		        URLEncoder.encode(String.valueOf(quarter), "UTF-8"));
+				URLEncoder.encode(String.valueOf(year - 1911), "UTF-8"),
+				URLEncoder.encode(String.valueOf(quarter), "UTF-8"));
 
 		String url = "http://mops.twse.com.tw" + formAction + "?" + postData;
 
@@ -882,6 +931,11 @@ class QuarterlyBasicTable {
 
 			if (++retry > MAX_DOWNLOAD_RETRY)
 				break;
+			
+			// no data currently
+			if (dwResult > 0 && noQuarterlyData(filename))
+				break;
+			
 		} while (dwResult < 0 || !isValidQuarterlyData(filename, 1000));
 	}
 
@@ -939,15 +993,15 @@ class QuarterlyBasicTable {
 		} else {
 			if (company.isFinancial()) {
 				if (company.stockNum == 2854 || company.stockNum == 2855 || company.stockNum == 2856
-				        || company.stockNum == 6004 || company.stockNum == 6005 || company.stockNum == 6012)
+						|| company.stockNum == 6004 || company.stockNum == 6005 || company.stockNum == 6012)
 					營收 = parseLong("營收總計");
 				else if (company.stockNum == 2820 && year == 2004)
 					營收 = parseLong("收益");
 				else if (company.stockNum == 2820 && year == 2005)
 					營收 = parseLong("收益");
 				else if ((year >= 2006 && year <= 2010) && (company.stockNum == 2816 || company.stockNum == 2823
-				        || company.stockNum == 2832 || company.stockNum == 2833 || company.stockNum == 2850
-				        || company.stockNum == 2851 || company.stockNum == 2852 || company.stockNum == 2867)) {
+						|| company.stockNum == 2832 || company.stockNum == 2833 || company.stockNum == 2850
+						|| company.stockNum == 2851 || company.stockNum == 2852 || company.stockNum == 2867)) {
 					Long va;
 					營收 = Long.valueOf(0);
 					if ((va = parseLong("保費收入")) != null)
@@ -1007,15 +1061,15 @@ class QuarterlyBasicTable {
 		} else {
 			if (company.isFinancial()) {
 				if (company.stockNum == 2854 || company.stockNum == 2855 || company.stockNum == 2856
-				        || company.stockNum == 6004 || company.stockNum == 6005 || company.stockNum == 6012)
+						|| company.stockNum == 6004 || company.stockNum == 6005 || company.stockNum == 6012)
 					成本 = parseLong("支出總計");
 				else if (company.stockNum == 2820 && year == 2004)
 					成本 = parseLong("費損");
 				else if (company.stockNum == 2820 && year == 2005)
 					成本 = parseLong("費損");
 				else if ((year >= 2006 && year <= 2010) && (company.stockNum == 2816 || company.stockNum == 2823
-				        || company.stockNum == 2832 || company.stockNum == 2833 || company.stockNum == 2850
-				        || company.stockNum == 2851 || company.stockNum == 2852 || company.stockNum == 2867)) {
+						|| company.stockNum == 2832 || company.stockNum == 2833 || company.stockNum == 2850
+						|| company.stockNum == 2851 || company.stockNum == 2852 || company.stockNum == 2867)) {
 					Long va;
 					成本 = Long.valueOf(0);
 					if ((va = parseLong("再保費支出")) != null)
@@ -1380,6 +1434,13 @@ public class ImportQuarterly implements Runnable {
 			quarter = 2;
 		else if (month > 5 || (month == 5 && day > 15))
 			quarter = 1;
+		else if (month > 3 || (month == 3 && day > 11)) {
+			quarter = 4;
+			year -= 1;
+		} else {
+			quarter = 3; 
+			year -= 1;
+		}
 
 		quarterSet[0] = year;
 		quarterSet[1] = quarter;
@@ -1388,11 +1449,11 @@ public class ImportQuarterly implements Runnable {
 
 	private void importBasicData(MyStatement stm) throws Exception {
 		QuarterlyBasicTable income = new QuarterlyBasicTable(year, quarter, company,
-		        QuarterlyBasicTable.INCOME_STATEMENT);
+				QuarterlyBasicTable.INCOME_STATEMENT);
 		QuarterlyBasicTable balance = new QuarterlyBasicTable(year, quarter, company,
-		        QuarterlyBasicTable.BALANCE_SHEET);
+				QuarterlyBasicTable.BALANCE_SHEET);
 		QuarterlyBasicTable cashflow = new QuarterlyBasicTable(year, quarter, company,
-		        QuarterlyBasicTable.CASHFLOW_STATEMENT);
+				QuarterlyBasicTable.CASHFLOW_STATEMENT);
 
 		boolean incomeResult = income.parse();
 		boolean balanceResult = balance.parse();
@@ -1474,10 +1535,10 @@ public class ImportQuarterly implements Runnable {
 			stm.setObject(income.營業利益()); // 營業利益
 			stm.setObject(income.業外收支()); // 業外收支
 			stm.setObject(income.parseLong("繼續營業部門稅前淨利(淨損)", "繼續營業部門稅前淨利（淨損）", "繼續營業部門稅前淨益(淨損)", "繼續營業單位稅前淨利(淨損)",
-			        "繼續營業單位稅前淨利（淨損）", "繼續營業單位稅前純益（純損）", "繼續營業單位稅前淨益(淨損)", "稅前純益(純損)", "稅前淨利（淨損）", "繼續營業部門稅前損益",
-			        "繼續營業單位稅前損益", "繼續營業單位稅前合併淨利（淨損）")); // 稅前淨利
+					"繼續營業單位稅前淨利（淨損）", "繼續營業單位稅前純益（純損）", "繼續營業單位稅前淨益(淨損)", "稅前純益(純損)", "稅前淨利（淨損）", "繼續營業部門稅前損益",
+					"繼續營業單位稅前損益", "繼續營業單位稅前合併淨利（淨損）")); // 稅前淨利
 			stm.setObject(income.parseLong("繼續營業部門稅後淨利（淨損）", "繼續營業部門淨利(淨損)", "繼續營業單位淨利(淨損)", "列計非常損益及會計原則變動累積影響數前損益",
-			        "列計非常損益及會計原則變動之累積影響數前淨利（淨額）", "繼續營業單位稅後純益（純損）", "合併總損益", "稅後純益", "本期損益（淨損）")); // 稅後淨利
+					"列計非常損益及會計原則變動之累積影響數前淨利（淨額）", "繼續營業單位稅後純益（純損）", "合併總損益", "稅後純益", "本期損益（淨損）")); // 稅後淨利
 			stm.setObject(income.綜合損益()); // 綜合損益
 			stm.setObject(income.eps()); // EPS
 
@@ -1510,15 +1571,15 @@ public class ImportQuarterly implements Runnable {
 
 		queryIFRSs = new MyStatement(db.conn);
 		queryIFRSs.setInsertOnDuplicateStatement("quarterly", "YearQuarter", "StockNum", "營收", "成本", "毛利", "營業利益",
-		        "業外收支", "稅前淨利", "稅後淨利", "綜合損益", "母公司業主淨利", "母公司業主綜合損益", "EPS", "流動資產", "現金及約當現金", "存貨", "預付款項", "非流動資產",
-		        "長期投資", "固定資產", "總資產", "流動負債", "非流動負債", "總負債", "保留盈餘", "股本", "利息費用", "營業現金流", "投資現金流", "融資現金流",
-		        "現金流累計需更正", "第四季累計需修正");
+				"業外收支", "稅前淨利", "稅後淨利", "綜合損益", "母公司業主淨利", "母公司業主綜合損益", "EPS", "流動資產", "現金及約當現金", "存貨", "預付款項", "非流動資產",
+				"長期投資", "固定資產", "總資產", "流動負債", "非流動負債", "總負債", "保留盈餘", "股本", "利息費用", "營業現金流", "投資現金流", "融資現金流",
+				"現金流累計需更正", "第四季累計需修正");
 		queryIFRSs.setBatchSize(250);
 
 		queryNoIFRSs = new MyStatement(db.conn);
 		queryNoIFRSs.setInsertOnDuplicateStatement("quarterly", "YearQuarter", "StockNum", "營收", "成本", "毛利", "營業利益",
-		        "業外收支", "稅前淨利", "稅後淨利", "綜合損益", "EPS", "流動資產", "現金及約當現金", "存貨", "預付款項", "長期投資", "固定資產", "總資產", "流動負債",
-		        "總負債", "保留盈餘", "股本", "現金流累計需更正", "第四季累計需修正");
+				"業外收支", "稅前淨利", "稅後淨利", "綜合損益", "EPS", "流動資產", "現金及約當現金", "存貨", "預付款項", "長期投資", "固定資產", "總資產", "流動負債",
+				"總負債", "保留盈餘", "股本", "現金流累計需更正", "第四季累計需修正");
 		queryNoIFRSs.setBatchSize(250);
 
 		ExecutorService service = Executors.newFixedThreadPool(8);

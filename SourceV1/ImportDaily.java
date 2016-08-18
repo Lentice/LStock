@@ -71,7 +71,7 @@ class DailyData {
  *
  */
 class DailyTaiEx implements Runnable {
-	static final String folderPath = Environment.DailyTaiExPath;
+	static final String folderPath = DataPath.DailyTaiExPath;
 	static final int NUM_COLUMN = 5;
 	static MyStatement stm;
 	static Object lock = new Object();
@@ -121,25 +121,25 @@ class DailyTaiEx implements Runnable {
 	}
 
 	boolean parse() throws Exception {
-		if (!file.exists()) {
+		if (!file.isFile()) {
 			Log.warn("檔案不存在: " + file.getPath());
 			return false;
 		}
 
-		Document doc = Jsoup.parse(file, "MS950");
-		Elements eTables = doc.getElementsByClass("board_trad");
+		final Document doc = Jsoup.parse(file, "MS950");
+		final Elements eTables = doc.getElementsByClass("board_trad");
 		if (eTables.size() == 0)
 			throw new Exception("eTables size is 0");
 
-		Element eTable = eTables.first();
-		Elements eTRs = eTable.select("tbody > tr");
+		final Element eTable = eTables.first();
+		final Elements eTRs = eTable.select("tbody > tr");
 		if (eTRs.size() == 0)
 			throw new Exception("eTRs size is 0");
 
 		data = new String[eTRs.size() - 2][NUM_COLUMN];
 		for (int i = 0; i < data.length; i++) {
-			Elements eTDs = eTRs.get(i + 2).children();
-			String[] date = HtmlParser.getText(eTDs.get(0)).split("/");
+			final Elements eTDs = eTRs.get(i + 2).children();
+			final String[] date = HtmlParser.getText(eTDs.get(0)).split("/");
 			data[i][0] = String.format("%04d-%02d-%s", year, month, date[2]);
 			data[i][1] = HtmlParser.getText(eTDs.get(1));
 			data[i][2] = HtmlParser.getText(eTDs.get(2));
@@ -244,7 +244,7 @@ class DailyTradeStocks implements Runnable {
 	static MyStatement taiEx;
 	static MyStatement dailyST;
 
-	static final String folderPath = Environment.DailyTradeStocksPath;
+	static final String folderPath = DataPath.DailyTradeStocksPath;
 	int year;
 	int month;
 	int day;
@@ -312,7 +312,7 @@ class DailyTradeStocks implements Runnable {
 				return false;
 			}
 
-			if (line.contains("1.一般股票")) {
+			if (line.contains("總計(1~12)")) {
 				taiExData = parseDailyCsvLine(line);
 			}
 
@@ -462,7 +462,7 @@ class DailyTradeStocks implements Runnable {
 
 	public static void supplementDB(MyDB myDB) throws Exception {
 
-		File importDir = new File(Environment.DailyTradeStocksPath);
+		File importDir = new File(DataPath.DailyTradeStocksPath);
 		if (!importDir.exists()) {
 			Log.warn("路徑不存在: " + importDir);
 			System.exit(-1);

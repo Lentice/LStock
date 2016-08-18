@@ -81,7 +81,7 @@ class MonthlyData {
 }
 
 class MonthlyRevenue {
-	private static final String folderPath = Environment.MonthlyRevenuePath;
+	private static final String folderPath = DataPath.MonthlyRevenuePath;
 	private static final int MonthlyRevenueMaxColumn = 11;
 
 	static MyDB db;
@@ -278,7 +278,7 @@ class MonthlyRevenue {
 		int eYear = endCal.get(Calendar.YEAR);
 		int eMonth = (endCal.get(Calendar.MONTH) + 1) - 1;
 
-		File importDir = new File(Environment.MonthlyRevenuePath);
+		File importDir = new File(DataPath.MonthlyRevenuePath);
 		if (!importDir.exists()) {
 			Log.warn("路徑不存在: " + importDir);
 			System.exit(-1);

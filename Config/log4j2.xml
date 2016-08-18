@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Configuration xmlns="http://logging.apache.org/log4j/2.0/config">
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%-5p | %d{yyyy-MM-dd HH:mm:ss} | [%t] (%F:%L) - %m%n"/>
+        </Console>
+        
+        <File name="LogFile" fileName="D:\\LStock.log" append="false">
+            <PatternLayout pattern="%-5p | %d{yyyy-MM-dd HH:mm:ss} | [%t] %C{2} (%F:%L) - %m%n"/>
+        </File>
+    </Appenders>
+
+    <Loggers>
+        <Root level="ALL">
+            <AppenderRef ref="Console" level="INFO"/>
+            <AppenderRef ref="LogFile" level="ALL"/>
+        </Root>
+        <Logger name="com.memorynotfound" level="debug"/>
+    </Loggers>
+
+</Configuration>
+
+<!-- Log Level:  OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL -->

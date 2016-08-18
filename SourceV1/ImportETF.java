@@ -10,7 +10,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 class EtfComponentBase {
-	static final String folderPath = Environment.ETF_PATH;
+	static final String folderPath = DataPath.ETF_PATH;
 	String filename;
 	String url;
 	boolean needUpdate;

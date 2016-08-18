@@ -53,6 +53,8 @@ class HtmlParser {
 }
 
 public class MyDB {
+	private static final String MAX_POOL = "500";
+	
 	public static boolean isUseIFRSs(int year) {
 		if (year < 2013)
 			return false;
@@ -86,17 +88,17 @@ public class MyDB {
 		p.put("user", PrivateInfo.USERNAME);
 		p.put("password", PrivateInfo.PASSWORD);
 		p.put("rewriteBatchedStatements", "TRUE");
-		p.put("MaxPooledStatements", "100");
+		p.put("MaxPooledStatements", MAX_POOL);
 
 		Log.trace("Connect to SQL...");
 		conn = DriverManager.getConnection(PrivateInfo.SQL_LINK, p);
-		conn.setAutoCommit(false);
 		Log.trace("SQL Connected.");
+		
+		conn.setAutoCommit(false);
 	}
 
 	public void close() throws SQLException {
 		conn.commit();
-		conn.setAutoCommit(true);
 		conn.close();
 	}
 
@@ -181,20 +183,20 @@ public class MyDB {
 }
 
 class MyStatement {
-	int batchSize = 1000;
+	private int batchSize = 1000;
 
-	PreparedStatement stm;
-	int batchCount = 0;
-	Connection conn;
-	int index = 1;
+	public PreparedStatement stm;
+	private int batchCount = 0;
+	private Connection connection;
+	private int index = 1;
 
-	MyStatement(Connection conn) throws SQLException {
-		this.conn = conn;
+	MyStatement(Connection connection) throws SQLException {
+		this.connection = connection;
 	}
 
-	MyStatement(Connection conn, String stmString) throws SQLException {
-		this.conn = conn;
-		stm = conn.prepareStatement(stmString);
+	MyStatement(Connection connection, String stmString) throws SQLException {
+		this.connection = connection;
+		stm = connection.prepareStatement(stmString);
 	}
 	
 	public void setBatchSize(int size) {
@@ -215,7 +217,7 @@ class MyStatement {
 		values = values.substring(0, values.length() - 2) + ") ";
 
 		String stmString = insert + columns + values;
-		stm = conn.prepareStatement(stmString);
+		stm = connection.prepareStatement(stmString);
 	}
 
 	public void setInsertOnDuplicateStatement(String table, String... columnNames) throws SQLException {
@@ -235,7 +237,7 @@ class MyStatement {
 		onDuplicate = onDuplicate.substring(0, onDuplicate.length() - 2);
 
 		String stmString = insert + columns + values + onDuplicate;
-		stm = conn.prepareStatement(stmString);
+		stm = connection.prepareStatement(stmString);
 	}
 
 	public void setUpdateStatement(String table, String where, String... columnNames) throws SQLException {
@@ -248,23 +250,24 @@ class MyStatement {
 		// remove last ", "
 		columns = columns.substring(0, columns.length() - 2) + " ";
 		String stmString = update + columns + "WHERE " + where;
-		stm = conn.prepareStatement(stmString);
+		stm = connection.prepareStatement(stmString);
 	}
 
 	public void addBatch() throws SQLException {
 		stm.addBatch();
 		if (++batchCount % batchSize == 0) {
 			stm.executeBatch();
-			conn.commit();
+			connection.commit();
 		}
 		
+		// reset index
 		index = 1;
 	}
 
 	public void close() throws SQLException {
 		stm.executeBatch();
 		stm.close();
-		conn.commit();
+		connection.commit();
 	}
 
 	public int[] executeBatch() throws SQLException {

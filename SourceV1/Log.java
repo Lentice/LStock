@@ -9,9 +9,9 @@ public class Log {
 	private static final byte DEBUG = 4;
 	private static final byte VERBOSE = 5;
 
-	private static final byte level = DEBUG;
+	private static final byte level = VERBOSE;
 	protected static SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS: ");
-	
+
 	protected static String getTimeStamp() {
 		return sdf.format(Calendar.getInstance().getTime());
 	}
@@ -45,7 +45,7 @@ public class Log {
 		if (level >= VERBOSE)
 			System.out.println(getTimeStamp() + msg);
 	}
-	
+
 	public static void err_(String msg) {
 		if (level >= ERROR)
 			System.out.print(msg);

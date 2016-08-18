@@ -145,7 +145,7 @@ public class Downloader {
 			int month = 9; 
 			final String url = "http://www.twse.com.tw/ch/trading/indices/MI_5MINS_HIST/MI_5MINS_HIST.php";
 			final String twDate = String.format("%03d%02d", year - 1911, month);
-			final String filename = String.format(Environment.DailyTaiExPath + "%04d%02d.htm", year, month);
+			final String filename = String.format(DataPath.DailyTaiExPath + "%04d%02d.htm", year, month);
 
 			Log.info("Download daily trade " + twDate);
 

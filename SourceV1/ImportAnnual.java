@@ -209,7 +209,6 @@ class AnnualSupplement implements Runnable {
 			supplementOtherField(supplementStm, company.stockNum, data);
 
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			System.exit(-1);
 		}
@@ -347,7 +346,7 @@ class Dividend {
 		String refPrice; // 除權除息參考價
 	}
 
-	static final String folderPath = Environment.ANNUAL_DIVIDEND;
+	static final String folderPath = DataPath.ANNUAL_DIVIDEND;
 	private static final int MAX_COLUMN = 11;
 
 	int year;
@@ -629,7 +628,6 @@ class AnnualCashflow implements Runnable {
 				importToDB();
 			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			System.exit(-1);
 		}
@@ -760,7 +758,6 @@ public class ImportAnnual implements Runnable {
 				importBasicDataNoIFRSs(queryNoIFRSs);
 			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			System.exit(-1);
 		}
@@ -871,7 +868,15 @@ public class ImportAnnual implements Runnable {
 
 	public static void supplementBasicData(MyDB myDB, int year) throws Exception {
 		Calendar cal = Calendar.getInstance();
-		int currentYear = cal.get(Calendar.YEAR);
+		int endYear = cal.get(Calendar.YEAR);
+		int month = cal.get(Calendar.MONTH) + 1;
+		int day = cal.get(Calendar.DATE);
+
+		if (month > 3 || (month == 3 && day > 11)) {
+			endYear = cal.get(Calendar.YEAR) - 1;
+		} else {
+			endYear = cal.get(Calendar.YEAR) - 2;
+		}
 
 		db = myDB;
 		Company[] companies = Company.getAllCompanies(db);
@@ -891,7 +896,7 @@ public class ImportAnnual implements Runnable {
 		ExecutorService service = Executors.newFixedThreadPool(8);
 		List<Future<?>> futures = new ArrayList<>();
 
-		for (; year < currentYear; year++) {
+		for (; year <= endYear; year++) {
 			for (Company company : companies) {
 				// skip no data stocks
 				int stockNum = company.stockNum;

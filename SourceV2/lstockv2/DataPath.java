@@ -1,9 +1,10 @@
+package lstockv2;
 
-public class Environment {
-	public static final String DailyTradeStocksPath = "Data\\日_收盤行情\\";
-	public static final String DailyTaiExPath = "Data\\日_加權指數月表\\";
+public class DataPath {
+	public static final String DAILY_TRADE_STOCKS_PATH = "Data\\日_收盤行情\\";
+	public static final String MONTHLY_TAIEX_PATH = "Data\\日_加權指數月表\\";
 	
-	public static final String MonthlyRevenuePath = "Data\\月_營收總表\\";
+	public static final String MONTHLY_REVENUE_PATH = "Data\\月_營收總表\\";
 	
 	public static final String QUARTERLY_INCOME_STATEMENT = "Data\\季_綜合損益表\\";
 	public static final String QUARTERLY_BALANCE_SHEET = "Data\\季_資產負債表\\";
