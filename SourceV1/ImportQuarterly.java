@@ -1507,9 +1507,6 @@ public class ImportQuarterly implements Runnable {
 		QuarterlyBasicTable income;
 		QuarterlyBasicTable balance;
 
-		if (company.stockNum == 2801)
-			Log.info("");
-
 		income = new QuarterlyBasicTable(year, quarter, company, QuarterlyBasicTable.INCOME_STATEMENT);
 		if (!income.parse()) {
 			income = new QuarterlyBasicTable(year, quarter, company, QuarterlyBasicTable.INCOME_STATEMENT_IDV);

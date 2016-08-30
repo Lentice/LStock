@@ -1,14 +1,15 @@
 package lstockv2;
 import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.Scanner;
 
 public class Test {
-		
-	public static void showFiles(File[] files) throws Exception {
+	public static void checkValidQuarterlyTable(File[] files) throws Exception {
 	    for (File file : files) {
 	        if (file.isDirectory()) {
 	            System.out.println("Directory: " + file.getName());
-	            showFiles(file.listFiles()); // Calls same method again.
+	            checkValidQuarterlyTable(file.listFiles()); // Calls same method again.
 	        } else {
 	            System.out.println("File: " + file.getName());
 	            
@@ -29,6 +30,9 @@ public class Test {
 					現金流量表 9918_2010_3
 	             * 
 	             */
+	            
+	            if (!file.isFile() || file.length() > 5 * 1024)
+	    			continue;
 	            
 	            final Scanner scanner = new Scanner(file);
 	            while (scanner.hasNextLine()) {
@@ -60,11 +64,188 @@ public class Test {
 	    }
 	}
 	
+	@SuppressWarnings("unused")
+	private static void checkQuarterly備供出售金融資產(File[] files) throws IOException {
+		for (File file : files) {
+			if (file.isDirectory()) {
+				System.out.println("Directory: " + file.getName());
+				checkQuarterly備供出售金融資產(file.listFiles()); // Calls same method
+														// again.
+			} else {
+//				System.out.println(file.getPath() + file.getName() + "  " + file.length());
+				
+				final Scanner scanner = new Scanner(file);
+	            while (scanner.hasNextLine()) {
+	               final String lineFromFile = scanner.nextLine();
+	               if(lineFromFile.contains("備供出售金融資產")) { 
+	            	   if (lineFromFile.contains("備供出售金融資產－非流動淨額") || lineFromFile.contains("備供出售金融資產－非流動"))
+	            		   continue;
+	            	   
+	            	   if (lineFromFile.contains("備供出售金融資產－流動淨額") || lineFromFile.contains("備供出售金融資產－流動"))
+	            		   continue;
+	            	   
+	            	   if (lineFromFile.contains("備供出售金融資產-非流動淨額") || lineFromFile.contains("備供出售金融資產-非流動"))
+	            		   continue;
+	            	   
+	            	   if (lineFromFile.contains("備供出售金融資產淨額-非流動淨額") || lineFromFile.contains("備供出售金融資產淨額-非流動"))
+	            		   continue;
+	            	   
+	            	   if (lineFromFile.contains("備供出售金融資產-流動淨額") || lineFromFile.contains("備供出售金融資產-流動"))
+	            		   continue;
+	            	   
+	            	   if (lineFromFile.contains("備供出售金融資產-流動淨額") || lineFromFile.contains("備供出售金融資產-流動"))
+	            		   continue;
+	            	   
+	            	   if (lineFromFile.contains("備供出售金融資產未實現損益") || lineFromFile.contains("備供出售金融資產未實利益（損失"))
+	            		   continue;
+	            	   
+	            	   System.out.println(lineFromFile);
+	                   break;
+	               }
+	            }
+	            
+	            scanner.close();
+			}
+		}
+	}
+	
+	@SuppressWarnings("unused")
+	private static void checkQuarterly投資性不動產淨額(File[] files) throws IOException {
+		for (File file : files) {
+			if (file.isDirectory()) {
+				System.out.println("Directory: " + file.getName());
+				checkQuarterly投資性不動產淨額(file.listFiles()); // Calls same method
+														// again.
+			} else {
+//				System.out.println(file.getPath() + file.getName() + "  " + file.length());
+				
+				final Scanner scanner = new Scanner(file);
+	            while (scanner.hasNextLine()) {
+	               final String lineFromFile = scanner.nextLine();
+	               if(lineFromFile.contains("投資性不動產淨額")) { 
+	            	   if (lineFromFile.contains("投資性不動產淨額</td>"))
+	            		   break;
+	            	   
+	            	   System.out.println(lineFromFile);
+	                   break;
+	               }
+	            }
+	            scanner.close();
+			}
+		}
+	}
+	
+	private static void checkQuarterly負債總額(File[] files) throws IOException {
+		for (File file : files) {
+			if (file.isDirectory()) {
+				System.out.println("Directory: " + file.getName());
+				checkQuarterly負債總額(file.listFiles()); // Calls same method
+														// again.
+			} else {
+//				System.out.println(file.getPath() + file.getName() + "  " + file.length());
+				
+				final Scanner scanner = new Scanner(file);
+	            while (scanner.hasNextLine()) {
+	               final String lineFromFile = scanner.nextLine();
+	               if(lineFromFile.contains("負債總額") || lineFromFile.contains("負債總計") || lineFromFile.contains("負債合計")) { 
+	            	   if (lineFromFile.contains("負債總額</td>") || lineFromFile.contains("負債總計</td>") || lineFromFile.contains("負債合計</td>"))
+	            		   break;
+	            	   
+	            	   System.out.println(lineFromFile);
+	                   break;
+	               }
+	            }
+	            scanner.close();
+			}
+		}
+	}
+	
+	private static void checkQuarterly現金流字串() throws IOException {
+		File[] files = new File("D:\\Dropbox\\Stock\\Code\\LStock\\Data\\季_現金流量表\\").listFiles();
+		HashMap<String, Integer> hash = new HashMap<>();
+		for (File file : files) {
+			if (file.isDirectory()) {
+				System.out.println("Directory: " + file.getName());
+				checkQuarterly負債總額(file.listFiles()); // Calls same method
+														// again.
+			} else {
+//				System.out.println(file.getPath() + file.getName() + "  " + file.length());
+				
+				final Scanner scanner = new Scanner(file);
+	            while (scanner.hasNextLine()) {
+	               final String lineFromFile = scanner.nextLine();
+	               if(lineFromFile.contains("營業活動")) {
+	            	   
+	            	   String[] splitStr = lineFromFile.split("\\s+");
+	            	   for(String data: splitStr) {
+	            		   if(data.contains("營業活動")) {
+	            			   if (!hash.containsKey(HtmlUtil.trim(data))) {
+	            				   hash.put(HtmlUtil.trim(data), new Integer(0));
+	            				   System.out.println(data);
+
+	        	            	   break;
+	            			   }
+	            		   }
+	            	   }
+	                   break;
+	               }
+	            }
+	            scanner.close();
+			}
+		}
+	}
+	
+	private static void checkQuarterly損益() throws IOException {
+		File[] files = new File("D:\\Dropbox\\Stock\\Code\\LStock\\Data\\季_綜合損益表\\").listFiles();
+
+		HashMap<String, Integer> hash = new HashMap<>();
+		for (File file : files) {
+			if (file.isDirectory()) {
+				System.out.println("Directory: " + file.getName());
+				checkQuarterly負債總額(file.listFiles()); // Calls same method
+														// again.
+			} else {
+//				System.out.println(file.getPath() + file.getName() + "  " + file.length());
+				
+				final Scanner scanner = new Scanner(file);
+	            while (scanner.hasNextLine()) {
+	               final String lineFromFile = scanner.nextLine();
+	               if(lineFromFile.contains("繼續營業")) {
+	            	   
+	            	   String[] splitStr = lineFromFile.split("\\s+");
+	            	   for(String data: splitStr) {
+	            		   if(data.contains("繼續營業")) {
+	            			   if (!hash.containsKey(HtmlUtil.trim(data))) {
+	            				   hash.put(HtmlUtil.trim(data), new Integer(0));
+	            				   System.out.println(data);
+
+	        	            	   break;
+	            			   }
+	            		   }
+	            	   }
+	                   break;
+	               }
+	            }
+	            scanner.close();
+			}
+		}
+	}
+	
 	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
-		System.out.println("Directory: ");
-		File[] files = new File("D:\\My Documents\\桌面\\Test").listFiles();
-	    showFiles(files);
+		System.out.println("Start");
+		
+	    //checkValidQuarterlyTable(files);
+		//checkQuarterly負債總額(files);
+//		checkQuarterly現金流字串();
+		checkQuarterly損益();
+		
+//		String test = "營業活動之淨現金流入（流出）(流出)";
+//		test = test.replaceAll("（|）|\\(|\\)", "");
+//		System.out.println(test);
+		System.out.println("Done!!");
 	}
+
+	
 
 }

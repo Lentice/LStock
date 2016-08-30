@@ -24,9 +24,9 @@ public class ImportAnnualDividend implements Runnable {
 
 	private static final String FOLDER_PATH = DataPath.ANNUAL_DIVIDEND;
 	private static final int MAX_THREAD = 20;
-	private static final long MIN_DOWNLOAD_GAP = 10000;
-
-	private static long lastDownloadTime = 0;
+	private static final int MIN_DOWNLOAD_GAP = 10000;
+	private static final Downloader downloader = new Downloader(MIN_DOWNLOAD_GAP);
+	
 	private static MyStatement stm;
 
 	private int year;
@@ -143,18 +143,13 @@ public class ImportAnnualDividend implements Runnable {
 					"http://goodinfo.tw/StockInfo/StockDividendScheduleList.asp?MARKET_CAT=上市&INDUSTRY_CAT=全部&YEAR=%d",
 					year);
 
-			final long downloadGap = System.currentTimeMillis() - lastDownloadTime;
-			if (downloadGap < MIN_DOWNLOAD_GAP) {
-				Thread.sleep(MIN_DOWNLOAD_GAP - downloadGap);
-			}
-
-			if (!Downloader.httpGet(url, fullFilePath)) {
+			if (!downloader.httpGet(url, fullFilePath)) {
 				log.warn("Download %d dividend failed", year);
 				return false;
 			}
 			log.info("Downloaded annual dividend to " + fullFilePath);
 
-			lastDownloadTime = System.currentTimeMillis();
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -165,6 +160,9 @@ public class ImportAnnualDividend implements Runnable {
 	}
 
 	public static void supplementDB(MyDB db) {
+		
+		new File(FOLDER_PATH).mkdirs(); // create folder if it was not exist
+		
 		Calendar cal = Calendar.getInstance();
 		int currentYear = cal.get(Calendar.YEAR);
 		int currentMonth = cal.get(Calendar.MONTH) + 1;

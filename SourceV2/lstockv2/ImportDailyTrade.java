@@ -26,8 +26,8 @@ public class ImportDailyTrade implements Runnable {
 	private static final String FOLDER_PATH = DataPath.DAILY_TRADE_STOCKS_PATH;
 	private static final int MAX_THREAD = 20;
 	private static final long MIN_DOWNLOAD_GAP = 1000;
+	private static final Downloader downloader = new Downloader(MIN_DOWNLOAD_GAP);
 
-	private static long lastDownloadTime = 0;
 	private static MyStatement companyST;
 	private static MyStatement dailyST;
 	private static MyStatement taiExST;
@@ -98,24 +98,12 @@ public class ImportDailyTrade implements Runnable {
 			return false;
 		}
 
-		final long downloadGap = System.currentTimeMillis() - lastDownloadTime;
-		if (downloadGap < MIN_DOWNLOAD_GAP) {
-			try {
-				Thread.sleep(MIN_DOWNLOAD_GAP - downloadGap);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-				System.exit(-1);
-			}
-		}
-
 		final String postData = String.format("download=csv&qdate=%s&selectType=ALLBUT0999", twDateEncoded);
-		if (!Downloader.httpPost(urlTWSE, postData, fullFilePath)) {
+		if (!downloader.httpPost(urlTWSE, postData, fullFilePath)) {
 			log.warn(String.format("Download daily stocks %04d_%02d_%02d failed", year, month, day));
 			return false;
 		}
 		log.info("Downloaded daily Stocks to" + fullFilePath);
-
-		lastDownloadTime = System.currentTimeMillis();
 
 		return true;
 	}
@@ -185,6 +173,8 @@ public class ImportDailyTrade implements Runnable {
 					companyST.setChar(idx++, row[0]); // Code
 					companyST.setChar(idx++, row[1]); // Name
 					companyST.setDate(idx++, date); // last_update
+					companyST.setFloat(idx++, row[8]); // 現價
+					companyST.setFloat(idx++, row[15]); // 本益比
 					companyST.addBatch();
 
 					idx = 1;
@@ -236,13 +226,9 @@ public class ImportDailyTrade implements Runnable {
 
 	public static void supplementDB(MyDB db) {
 
-		File importDir = new File(FOLDER_PATH);
-		if (!importDir.isDirectory()) {
-			log.error("路徑不存在: " + FOLDER_PATH);
-			System.exit(-1);
-		}
+		new File(FOLDER_PATH).mkdirs(); // create folder if it was not exist
 
-		final String insertComp = "INSERT INTO company (StockNum, Code, Name, last_update) " + "VALUES (?, ?, ?, ?) "
+		final String insertComp = "INSERT INTO company (StockNum, Code, Name, last_update, 現價, 本益比) " + "VALUES (?, ?, ?, ?, ?, ?) "
 				+ "ON DUPLICATE KEY UPDATE last_update = IF(last_update < VALUES(last_update), VALUES(last_update), last_update)";
 		companyST = new MyStatement(db.conn, insertComp);
 

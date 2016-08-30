@@ -23,8 +23,8 @@ public class ImportMonthlyRevenue implements Runnable {
 	private static final String FOLDER_PATH = DataPath.MONTHLY_REVENUE_PATH;
 	private static final int MAX_THREAD = 20;
 	private static final long MIN_DOWNLOAD_GAP = 1000;
+	private static final Downloader downloader = new Downloader(MIN_DOWNLOAD_GAP);
 
-	private static long lastDownloadTime = 0;
 	private static MyStatement companyST;
 	private static MyStatement monthST;
 
@@ -90,23 +90,12 @@ public class ImportMonthlyRevenue implements Runnable {
 			return true;
 		}
 
-		final long downloadGap = System.currentTimeMillis() - lastDownloadTime;
-		if (downloadGap < MIN_DOWNLOAD_GAP) {
-			try {
-				Thread.sleep(MIN_DOWNLOAD_GAP - downloadGap);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-				System.exit(-1);
-			}
-		}
-
-		if (!Downloader.httpGet(url, fullFilePath)) {
+		if (!downloader.httpGet(url, fullFilePath)) {
 			log.warn(String.format("Download monthly revenue %04d_%02d failed", year, month));
 			return false;
 		}
 		log.info("Downloaded revenue to " + fullFilePath);
 
-		lastDownloadTime = System.currentTimeMillis();
 		return true;
 	}
 
@@ -225,11 +214,7 @@ public class ImportMonthlyRevenue implements Runnable {
 
 	public static void supplementDB(MyDB db) {
 
-		File importDir = new File(FOLDER_PATH);
-		if (!importDir.isDirectory()) {
-			log.warn("路徑不存在: " + FOLDER_PATH);
-			System.exit(-1);
-		}
+		new File(FOLDER_PATH).mkdirs(); // create folder if it was not exist
 
 		String update = "UPDATE company SET 產業別 = ? WHERE StockNum = ?";
 		companyST = new MyStatement(db.conn, update);

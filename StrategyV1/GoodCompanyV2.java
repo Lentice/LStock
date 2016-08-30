@@ -331,21 +331,21 @@ public class GoodCompanyV2 {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		try {
-			MyDB db = new MyDB();
-			List<Company> goodCompList = GoodCompanyV2.GetGoodCompanies(db);
+//			MyDB db = new MyDB();
+//			List<Company> goodCompList = GoodCompanyV2.GetGoodCompanies(db);
 			// List<Company> goodCompList = GoodCompanyV2.GetGoodCompanies(db);
 			// Log.info_("\n合格公司:\n");
 			// Log.info_("代號\t名稱\t本益比分數\t當前本益比\t正常本益比\t\n");
-			for (Company goodComp : goodCompList) {
-				// int score = goodComp.get本益比分數();
-				// float 當前本益比 = goodComp.company.當前本益比;
-				// Log.info_(goodComp.stockNum + "\t" + goodComp.name + "\t" +
-				// score
-				// + "\t" + 當前本益比 + "\t"
-				// + goodComp.本益比估計[1] + "\n");
-			}
+//			for (Company goodComp : goodCompList) {
+//				 int score = goodComp.get本益比分數();
+//				 float 當前本益比 = goodComp.company.當前本益比;
+//				 Log.info_(goodComp.stockNum + "\t" + goodComp.name + "\t" +
+//				 score
+//				 + "\t" + 當前本益比 + "\t"
+//				 + goodComp.本益比估計[1] + "\n");
+//			}
 
-			db.close();
+//			db.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

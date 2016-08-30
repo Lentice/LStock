@@ -22,6 +22,30 @@ public class HtmlUtil {
 
 		return text;
 	}
+	
+	public static Integer getInt(Element el) {
+		try {		
+			return Integer.parseInt(getText(el));
+		} catch (NumberFormatException ex) {
+			return null;
+		}
+	}
+	
+	public static Long getLong(Element el) {
+		try {		
+			return Long.parseLong(getText(el));
+		} catch (NumberFormatException ex) {
+			return null;
+		}
+	}
+	
+	public static Float getFloat(Element el) {
+		try {		
+			return Float.parseFloat(getText(el));
+		} catch (NumberFormatException ex) {
+			return null;
+		}
+	}
 
 	public static String trim(String s) {
 		if (s.isEmpty())

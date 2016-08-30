@@ -106,15 +106,14 @@ public class MyStatement {
 	}
 
 	public void addBatch() throws SQLException {
-		//log.trace(stm);
+		index = 1;// reset index
 		stm.addBatch();
 		if (++batchCount % batchSize == 0) {
 			stm.executeBatch();
 			connection.commit();
 		}
 		
-		// reset index
-		index = 1;
+		
 	}
 
 	public void close(){
