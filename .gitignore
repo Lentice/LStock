@@ -63,5 +63,8 @@ Data/
 # Private Data
 Strategy/
 
+#Goodsync Data
+_gsdata_
+
 # Binary Data
 bin/

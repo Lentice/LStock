@@ -1,37 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
-	<classpathentry kind="lib" path="External/mysql-connector-java-5.1.36-bin.jar"/>
-	<classpathentry kind="lib" path="External/commons-math3-3.5.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/External/commons-math3-3.5-javadoc.jar!/"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="External/jsoup-1.8.3.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/External/jsoup-1.8.3-javadoc.jar!/"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="src" path="SourceV1"/>
-	<classpathentry kind="src" path="StrategyV1"/>
-	<classpathentry kind="src" path="SourceV2"/>
-	<classpathentry kind="lib" path="External"/>
-	<classpathentry kind="lib" path="External/log4j-api-2.6.2.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/External/log4j-api-2.6.2-javadoc.jar!/"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="External/log4j-core-2.6.2.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/External/log4j-core-2.6.2-javadoc.jar!/"/>
-		</attributes>
-	</classpathentry>
+	<classpathentry kind="src" path="Resource"/>
+	<classpathentry kind="src" path="Source"/>
 	<classpathentry kind="lib" path="Config"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
-	<classpathentry kind="lib" path="External/ECharts-3.0.0.1.jar">
+	<classpathentry kind="lib" path="Lib/mysql-connector-java-5.1.40-bin.jar"/>
+	<classpathentry kind="lib" path="Lib/commons-math3-3.5.jar">
 		<attributes>
-			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/External/ECharts-3.0.0.1-javadoc.jar!/"/>
+			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/Lib/commons-math3-3.5-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="Lib/ECharts-3.0.0.1.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/Lib/ECharts-3.0.0.1-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="Lib/jsoup-1.8.3.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/Lib/jsoup-1.8.3-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="Lib/log4j-api-2.6.2.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/Lib/log4j-api-2.6.2-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="Lib/log4j-core-2.6.2.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/LStock/Lib/log4j-core-2.6.2-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="Lib/jgoodies-forms-1.8.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
